@@ -78,16 +78,16 @@ export function AppSidebar() {
       {/* Search */}
       {!collapsed && (
         <div className="px-3 pt-4 pb-2">
-          <Link
-            href="/search"
-            className="flex items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             <Search className="h-4 w-4" />
             <span>Search...</span>
             <kbd className="ml-auto rounded border border-sidebar-border bg-sidebar px-1.5 py-0.5 font-mono text-[10px] text-sidebar-foreground/40">
               {"⌘K"}
             </kbd>
-          </Link>
+          </button>
         </div>
       )}
       {collapsed && (
@@ -113,7 +113,7 @@ export function AppSidebar() {
                 className={cn(
                   "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                   active
-                    ? "bg-sidebar-primary/15 text-sidebar-primary shadow-[inset_0_0_0_1px_hsl(var(--sidebar-primary)/0.2)]"
+                    ? "bg-sidebar-primary/15 text-sidebar-primary ring-1 ring-inset ring-sidebar-primary/20"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
@@ -165,7 +165,7 @@ export function AppSidebar() {
                     className={cn(
                       "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                       active
-                        ? "bg-sidebar-primary/15 text-sidebar-primary shadow-[inset_0_0_0_1px_hsl(var(--sidebar-primary)/0.2)]"
+                        ? "bg-sidebar-primary/15 text-sidebar-primary ring-1 ring-inset ring-sidebar-primary/20"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     )}
                   >
@@ -206,12 +206,12 @@ export function AppSidebar() {
             </div>
           )}
           {!collapsed && (
-            <Link
-              href="/settings"
+            <button
+              type="button"
               className="rounded-md p-1 text-sidebar-foreground/40 transition-colors hover:text-sidebar-foreground"
             >
               <Settings className="h-4 w-4" />
-            </Link>
+            </button>
           )}
         </div>
 

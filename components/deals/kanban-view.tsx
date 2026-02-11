@@ -1,7 +1,5 @@
 "use client"
 
-import { ScrollArea } from "@/components/ui/scroll-area"
-
 import { STAGE_LABELS, type Deal, type DealStage } from "@/lib/mock-data"
 import { DealCard } from "./deal-card"
 
