@@ -21,11 +21,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  UserCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const mainNav = [
+interface NavItem {
+  label: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+const mainNav: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Deals", href: "/deals", icon: Handshake },
   { label: "Leads", href: "/leads", icon: Users },
@@ -34,7 +39,7 @@ const mainNav = [
   { label: "Reports", href: "/reports", icon: BarChart3 },
 ]
 
-const adminNav = [
+const adminNav: NavItem[] = [
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Offices", href: "/admin/offices", icon: Building2 },
   { label: "Lenders", href: "/admin/lenders", icon: CreditCard },
@@ -43,6 +48,32 @@ const adminNav = [
   { label: "Gates", href: "/admin/gates", icon: ShieldCheck },
   { label: "Integrations", href: "/admin/integrations", icon: Plug },
 ]
+
+function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
+  const Icon = item.icon
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        "relative z-10 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        active
+          ? "bg-[hsl(199,89%,48%,0.15)] text-[hsl(199,89%,48%)]"
+          : "text-[hsl(210,20%,78%,0.7)] hover:bg-[hsl(220,25%,14%)] hover:text-[hsl(210,20%,92%)]"
+      )}
+    >
+      <Icon
+        className={cn(
+          "h-[18px] w-[18px] shrink-0",
+          active ? "text-[hsl(199,89%,48%)]" : "text-[hsl(210,20%,78%,0.5)]"
+        )}
+      />
+      {!collapsed && <span>{item.label}</span>}
+      {active && !collapsed && (
+        <div className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(199,89%,48%)]" />
+      )}
+    </Link>
+  )
+}
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -57,21 +88,19 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
+        "relative z-20 flex h-full shrink-0 flex-col border-r border-[hsl(220,20%,16%)] bg-[hsl(220,30%,8%)] text-[hsl(210,20%,78%)] transition-all duration-300",
         collapsed ? "w-[68px]" : "w-[260px]"
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
-          <span className="text-sm font-bold text-sidebar-primary-foreground">K</span>
+      <div className="flex h-16 items-center gap-3 border-b border-[hsl(220,20%,16%)] px-5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[hsl(199,89%,48%)]">
+          <span className="text-sm font-bold text-white">K</span>
         </div>
         {!collapsed && (
-          <div className="animate-slide-in">
-            <span className="text-lg font-semibold tracking-tight text-sidebar-accent-foreground">
-              KinOS
-            </span>
-          </div>
+          <span className="text-lg font-semibold tracking-tight text-[hsl(210,20%,92%)]">
+            KinOS
+          </span>
         )}
       </div>
 
@@ -80,11 +109,11 @@ export function AppSidebar() {
         <div className="px-3 pt-4 pb-2">
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="flex w-full items-center gap-2 rounded-lg border border-[hsl(220,20%,16%)] bg-[hsl(220,25%,14%,0.5)] px-3 py-2 text-sm text-[hsl(210,20%,78%,0.6)] transition-colors hover:bg-[hsl(220,25%,14%)] hover:text-[hsl(210,20%,78%)]"
           >
             <Search className="h-4 w-4" />
             <span>Search...</span>
-            <kbd className="ml-auto rounded border border-sidebar-border bg-sidebar px-1.5 py-0.5 font-mono text-[10px] text-sidebar-foreground/40">
+            <kbd className="ml-auto rounded border border-[hsl(220,20%,16%)] bg-[hsl(220,30%,8%)] px-1.5 py-0.5 font-mono text-[10px] text-[hsl(210,20%,78%,0.4)]">
               {"⌘K"}
             </kbd>
           </button>
@@ -94,7 +123,7 @@ export function AppSidebar() {
         <div className="flex justify-center pt-4 pb-2">
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[hsl(210,20%,78%,0.6)] transition-colors hover:bg-[hsl(220,25%,14%)] hover:text-[hsl(210,20%,78%)]"
           >
             <Search className="h-4 w-4" />
           </button>
@@ -104,34 +133,14 @@ export function AppSidebar() {
       {/* Main Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-2" aria-label="Main navigation">
         <div className="space-y-1">
-          {mainNav.map((item) => {
-            const active = isActive(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
-                  active
-                    ? "bg-sidebar-primary/15 text-sidebar-primary ring-1 ring-inset ring-sidebar-primary/20"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <item.icon
-                  className={cn(
-                    "h-[18px] w-[18px] shrink-0 transition-colors",
-                    active ? "text-sidebar-primary" : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
-                  )}
-                />
-                {!collapsed && (
-                  <span className="animate-slide-in">{item.label}</span>
-                )}
-                {active && !collapsed && (
-                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary animate-pulse-glow" />
-                )}
-              </Link>
-            )
-          })}
+          {mainNav.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={isActive(item.href)}
+              collapsed={collapsed}
+            />
+          ))}
         </div>
 
         {/* Admin Section */}
@@ -140,7 +149,7 @@ export function AppSidebar() {
             <button
               type="button"
               onClick={() => setAdminOpen(!adminOpen)}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 transition-colors hover:text-sidebar-foreground/60"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[hsl(210,20%,78%,0.4)] transition-colors hover:text-[hsl(210,20%,78%,0.6)]"
             >
               <span>Admin</span>
               <ChevronDown
@@ -151,64 +160,47 @@ export function AppSidebar() {
               />
             </button>
           ) : (
-            <div className="mx-auto mb-2 h-px w-8 bg-sidebar-border" />
+            <div className="mx-auto mb-2 h-px w-8 bg-[hsl(220,20%,16%)]" />
           )}
 
           {(adminOpen || collapsed) && (
             <div className="mt-1 space-y-1">
-              {adminNav.map((item) => {
-                const active = isActive(item.href)
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
-                      active
-                        ? "bg-sidebar-primary/15 text-sidebar-primary ring-1 ring-inset ring-sidebar-primary/20"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <item.icon
-                      className={cn(
-                        "h-[18px] w-[18px] shrink-0 transition-colors",
-                        active ? "text-sidebar-primary" : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
-                      )}
-                    />
-                    {!collapsed && (
-                      <span className="animate-slide-in">{item.label}</span>
-                    )}
-                  </Link>
-                )
-              })}
+              {adminNav.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(item.href)}
+                  collapsed={collapsed}
+                />
+              ))}
             </div>
           )}
         </div>
       </nav>
 
       {/* User Section */}
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-[hsl(220,20%,16%)] p-3">
         <div
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2",
             collapsed && "justify-center px-0"
           )}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(220,25%,14%)] text-xs font-semibold text-[hsl(210,20%,92%)]">
             AE
           </div>
           {!collapsed && (
-            <div className="min-w-0 flex-1 animate-slide-in">
-              <p className="truncate text-sm font-medium text-sidebar-accent-foreground">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-[hsl(210,20%,92%)]">
                 Austin E.
               </p>
-              <p className="truncate text-xs text-sidebar-foreground/50">Closer</p>
+              <p className="truncate text-xs text-[hsl(210,20%,78%,0.5)]">Closer</p>
             </div>
           )}
           {!collapsed && (
             <button
               type="button"
-              className="rounded-md p-1 text-sidebar-foreground/40 transition-colors hover:text-sidebar-foreground"
+              className="rounded-md p-1 text-[hsl(210,20%,78%,0.4)] transition-colors hover:text-[hsl(210,20%,78%)]"
             >
               <Settings className="h-4 w-4" />
             </button>
@@ -219,7 +211,7 @@ export function AppSidebar() {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="mt-2 flex w-full items-center justify-center rounded-lg py-1.5 text-sidebar-foreground/30 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground/60"
+          className="mt-2 flex w-full items-center justify-center rounded-lg py-1.5 text-[hsl(210,20%,78%,0.3)] transition-colors hover:bg-[hsl(220,25%,14%)] hover:text-[hsl(210,20%,78%,0.6)]"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
