@@ -15,6 +15,7 @@ type View = "closer" | "manager"
 
 export default function DashboardPage() {
   const [view, setView] = useState<View>("closer")
+  console.log("[v0] DashboardPage rendering, view:", view)
 
   return (
     <div className="p-6 lg:p-8">

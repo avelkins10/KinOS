@@ -5,6 +5,7 @@ import React from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 
 export default function CRMLayout({ children }: { children: React.ReactNode }) {
+  console.log("[v0] CRMLayout rendering")
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <AppSidebar />
