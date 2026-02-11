@@ -1,23 +1,34 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { DEALS, STAGE_LABELS, STAGE_COLORS } from "@/lib/mock-data"
-import { cn } from "@/lib/utils"
-import { Search, Phone, MapPin, ArrowUpRight, List, LayoutGrid } from "lucide-react"
+import { useState } from "react";
+import { DEALS, STAGE_LABELS, STAGE_COLORS } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
+import {
+  Search,
+  Phone,
+  MapPin,
+  ArrowUpRight,
+  List,
+  LayoutGrid,
+} from "lucide-react";
 
-const earlyStages = ["new_lead", "appointment_set", "appointment_completed"] as const
-type ViewMode = "list" | "grid"
+const earlyStages = [
+  "new_lead",
+  "design_requested",
+  "design_complete",
+] as const;
+type ViewMode = "list" | "grid";
 
 export default function LeadsPage() {
-  const [search, setSearch] = useState("")
-  const [view, setView] = useState<ViewMode>("list")
-  const leads = DEALS.filter(
-    (d) => earlyStages.includes(d.stage as (typeof earlyStages)[number])
+  const [search, setSearch] = useState("");
+  const [view, setView] = useState<ViewMode>("list");
+  const leads = DEALS.filter((d) =>
+    earlyStages.includes(d.stage as (typeof earlyStages)[number]),
   ).filter(
     (d) =>
       d.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      d.address.toLowerCase().includes(search.toLowerCase())
-  )
+      d.address.toLowerCase().includes(search.toLowerCase()),
+  );
 
   return (
     <div className="animate-fade-in p-6 lg:p-8">
@@ -42,7 +53,7 @@ export default function LeadsPage() {
               "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
               view === "list"
                 ? "bg-card text-card-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <List className="h-4 w-4" />
@@ -55,7 +66,7 @@ export default function LeadsPage() {
               "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
               view === "grid"
                 ? "bg-card text-card-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <LayoutGrid className="h-4 w-4" />
@@ -92,7 +103,10 @@ export default function LeadsPage() {
               {leads.map((lead) => (
                 <tr key={lead.id}>
                   <td>
-                    <a href={`/deals/${lead.id}`} className="font-semibold text-foreground hover:text-primary transition-colors">
+                    <a
+                      href={`/deals/${lead.id}`}
+                      className="font-semibold text-foreground hover:text-primary transition-colors"
+                    >
                       {lead.customerName}
                     </a>
                   </td>
@@ -100,19 +114,30 @@ export default function LeadsPage() {
                     {lead.city}, {lead.state}
                   </td>
                   <td>
-                    <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-bold", STAGE_COLORS[lead.stage])}>
+                    <span
+                      className={cn(
+                        "rounded-full border px-2.5 py-0.5 text-[10px] font-bold",
+                        STAGE_COLORS[lead.stage],
+                      )}
+                    >
                       {STAGE_LABELS[lead.stage]}
                     </span>
                   </td>
-                  <td className="text-muted-foreground font-mono text-xs">{lead.phone}</td>
+                  <td className="text-muted-foreground font-mono text-xs">
+                    {lead.phone}
+                  </td>
                   <td className="text-muted-foreground">{lead.setter.name}</td>
-                  <td className="text-muted-foreground font-medium">{lead.daysInPipeline}d</td>
+                  <td className="text-muted-foreground font-medium">
+                    {lead.daysInPipeline}d
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
           {leads.length === 0 && (
-            <div className="py-16 text-center text-sm text-muted-foreground">No leads found.</div>
+            <div className="py-16 text-center text-sm text-muted-foreground">
+              No leads found.
+            </div>
           )}
         </div>
       ) : (
@@ -124,20 +149,31 @@ export default function LeadsPage() {
               className="card-premium group p-5"
             >
               <div className="flex items-start justify-between">
-                <h3 className="text-sm font-semibold text-foreground">{lead.customerName}</h3>
+                <h3 className="text-sm font-semibold text-foreground">
+                  {lead.customerName}
+                </h3>
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </div>
 
               <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
-                <span>{lead.address}, {lead.city}, {lead.state}</span>
+                <span>
+                  {lead.address}, {lead.city}, {lead.state}
+                </span>
               </div>
 
               <div className="mt-3 flex items-center gap-3">
-                <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-bold", STAGE_COLORS[lead.stage])}>
+                <span
+                  className={cn(
+                    "rounded-full border px-2.5 py-0.5 text-[10px] font-bold",
+                    STAGE_COLORS[lead.stage],
+                  )}
+                >
                   {STAGE_LABELS[lead.stage]}
                 </span>
-                <span className="text-xs text-muted-foreground">{lead.daysInPipeline}d ago</span>
+                <span className="text-xs text-muted-foreground">
+                  {lead.daysInPipeline}d ago
+                </span>
               </div>
 
               <div className="mt-3 flex items-center gap-3 border-t border-border pt-3">
@@ -155,5 +191,5 @@ export default function LeadsPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

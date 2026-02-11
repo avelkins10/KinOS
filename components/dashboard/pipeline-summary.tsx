@@ -1,34 +1,36 @@
-"use client"
+"use client";
 
-import { DEALS, STAGE_LABELS, type DealStage } from "@/lib/mock-data"
-import { cn } from "@/lib/utils"
+import { DEALS, STAGE_LABELS, type DealStage } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
 
 const stageOrder: DealStage[] = [
   "new_lead",
-  "appointment_set",
-  "appointment_completed",
-  "design_in_progress",
-  "proposal_sent",
-  "financing_applied",
-  "financing_approved",
-  "contract_signed",
+  "design_requested",
+  "design_complete",
+  "proposal",
+  "financing",
+  "contracting",
+  "pre_intake",
   "submitted",
-]
+  "intake_approved",
+];
 
 const stageColors: Record<DealStage, string> = {
   new_lead: "bg-chart-4",
-  appointment_set: "bg-primary",
-  appointment_completed: "bg-chart-2",
-  design_in_progress: "bg-accent",
-  proposal_sent: "bg-chart-1",
-  financing_applied: "bg-warning",
-  financing_approved: "bg-success",
-  contract_signed: "bg-chart-2",
+  design_requested: "bg-primary",
+  design_complete: "bg-chart-2",
+  proposal: "bg-chart-1",
+  financing: "bg-warning",
+  contracting: "bg-chart-2",
+  pre_intake: "bg-accent",
   submitted: "bg-success",
-}
+  intake_approved: "bg-success",
+};
 
 export function PipelineSummary({ closerId }: { closerId?: string }) {
-  const deals = closerId ? DEALS.filter((d) => d.closer.id === closerId) : DEALS
+  const deals = closerId
+    ? DEALS.filter((d) => d.closer.id === closerId)
+    : DEALS;
 
   const stageCounts = stageOrder.map((stage) => ({
     stage,
@@ -37,10 +39,10 @@ export function PipelineSummary({ closerId }: { closerId?: string }) {
     value: deals
       .filter((d) => d.stage === stage)
       .reduce((sum, d) => sum + d.dealValue, 0),
-  }))
+  }));
 
-  const totalDeals = deals.length
-  const maxCount = Math.max(...stageCounts.map((s) => s.count), 1)
+  const totalDeals = deals.length;
+  const maxCount = Math.max(...stageCounts.map((s) => s.count), 1);
 
   return (
     <div className="card-premium p-6">
@@ -61,9 +63,12 @@ export function PipelineSummary({ closerId }: { closerId?: string }) {
                 <div
                   className={cn(
                     "flex h-full items-center rounded-lg transition-all duration-700 ease-out",
-                    stageColors[stage]
+                    stageColors[stage],
                   )}
-                  style={{ width: `${Math.max((count / maxCount) * 100, count > 0 ? 10 : 0)}%`, opacity: 0.85 }}
+                  style={{
+                    width: `${Math.max((count / maxCount) * 100, count > 0 ? 10 : 0)}%`,
+                    opacity: 0.85,
+                  }}
                 >
                   {count > 0 && (
                     <span className="px-2.5 text-[11px] font-bold text-white">
@@ -80,5 +85,5 @@ export function PipelineSummary({ closerId }: { closerId?: string }) {
         ))}
       </div>
     </div>
-  )
+  );
 }

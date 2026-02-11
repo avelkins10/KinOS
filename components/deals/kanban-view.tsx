@@ -1,38 +1,38 @@
-"use client"
+"use client";
 
-import { STAGE_LABELS, type Deal, type DealStage } from "@/lib/mock-data"
-import { DealCard } from "./deal-card"
+import { STAGE_LABELS, type Deal, type DealStage } from "@/lib/mock-data";
+import { DealCard } from "./deal-card";
 
 const stageOrder: DealStage[] = [
   "new_lead",
-  "appointment_set",
-  "appointment_completed",
-  "design_in_progress",
-  "proposal_sent",
-  "financing_applied",
-  "financing_approved",
-  "contract_signed",
+  "design_requested",
+  "design_complete",
+  "proposal",
+  "financing",
+  "contracting",
+  "pre_intake",
   "submitted",
-]
+  "intake_approved",
+];
 
 const stageDotColors: Record<DealStage, string> = {
   new_lead: "bg-chart-4",
-  appointment_set: "bg-primary",
-  appointment_completed: "bg-chart-2",
-  design_in_progress: "bg-accent",
-  proposal_sent: "bg-chart-1",
-  financing_applied: "bg-warning",
-  financing_approved: "bg-success",
-  contract_signed: "bg-chart-2",
+  design_requested: "bg-primary",
+  design_complete: "bg-chart-2",
+  proposal: "bg-chart-1",
+  financing: "bg-warning",
+  contracting: "bg-chart-2",
+  pre_intake: "bg-accent",
   submitted: "bg-success",
-}
+  intake_approved: "bg-success",
+};
 
 export function KanbanView({ deals }: { deals: Deal[] }) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-4">
       {stageOrder.map((stage) => {
-        const stageDeals = deals.filter((d) => d.stage === stage)
-        const totalValue = stageDeals.reduce((s, d) => s + d.dealValue, 0)
+        const stageDeals = deals.filter((d) => d.stage === stage);
+        const totalValue = stageDeals.reduce((s, d) => s + d.dealValue, 0);
 
         return (
           <div
@@ -41,7 +41,9 @@ export function KanbanView({ deals }: { deals: Deal[] }) {
           >
             {/* Column Header */}
             <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-              <div className={`h-2 w-2 rounded-full ${stageDotColors[stage]}`} />
+              <div
+                className={`h-2 w-2 rounded-full ${stageDotColors[stage]}`}
+              />
               <span className="text-xs font-semibold text-foreground">
                 {STAGE_LABELS[stage]}
               </span>
@@ -72,8 +74,8 @@ export function KanbanView({ deals }: { deals: Deal[] }) {
               </div>
             </div>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
