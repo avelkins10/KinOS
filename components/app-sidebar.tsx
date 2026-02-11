@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import React from "react"
-import { useState } from "react"
-import { usePathname } from "next/navigation"
+import React from "react";
+import { useState, useTransition } from "react";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Handshake,
@@ -20,14 +20,25 @@ import {
   ChevronRight,
   Search,
   Zap,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+  User,
+  LogOut,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/providers/auth-provider";
+import { signOut } from "@/lib/actions/auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItem {
-  label: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-  badge?: string
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
 }
 
 const mainNav: NavItem[] = [
@@ -35,7 +46,7 @@ const mainNav: NavItem[] = [
   { label: "Leads", href: "/leads", icon: Users, badge: "3" },
   { label: "Deals", href: "/deals", icon: Handshake },
   { label: "Reports", href: "/reports", icon: BarChart3 },
-]
+];
 
 const adminNav: NavItem[] = [
   { label: "Users", href: "/admin/users", icon: Users },
@@ -45,26 +56,33 @@ const adminNav: NavItem[] = [
   { label: "Equipment", href: "/admin/equipment", icon: Cpu },
   { label: "Gates", href: "/admin/gates", icon: ShieldCheck },
   { label: "Integrations", href: "/admin/integrations", icon: Plug },
-]
+];
+
+const ROLE_DISPLAY_NAMES: Record<string, string> = {
+  admin: "Administrator",
+  regional_manager: "Regional Manager",
+  office_manager: "Office Manager",
+  closer: "Closer",
+  setter: "Setter",
+  viewer: "Viewer",
+};
 
 function NavLink({
   item,
   active,
   collapsed,
 }: {
-  item: NavItem
-  active: boolean
-  collapsed: boolean
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
 }) {
-  const Icon = item.icon
+  const Icon = item.icon;
   return (
     <a
       href={item.href}
       className={cn(
         "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
-        active
-          ? "text-white"
-          : "text-slate-400 hover:text-slate-200"
+        active ? "text-white" : "text-slate-400 hover:text-slate-200",
       )}
     >
       {/* Active background glow */}
@@ -72,8 +90,10 @@ function NavLink({
         <div
           className="absolute inset-0 rounded-lg"
           style={{
-            background: "linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(14,165,233,0.08) 100%)",
-            boxShadow: "inset 0 0 0 1px rgba(14,165,233,0.2), 0 0 20px -4px rgba(14,165,233,0.15)",
+            background:
+              "linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(14,165,233,0.08) 100%)",
+            boxShadow:
+              "inset 0 0 0 1px rgba(14,165,233,0.2), 0 0 20px -4px rgba(14,165,233,0.15)",
           }}
         />
       )}
@@ -91,17 +111,17 @@ function NavLink({
       <Icon
         className={cn(
           "relative h-[18px] w-[18px] shrink-0 transition-colors duration-200",
-          active ? "text-sky-400" : "text-slate-500 group-hover:text-slate-300"
+          active ? "text-sky-400" : "text-slate-500 group-hover:text-slate-300",
         )}
       />
-      {!collapsed && (
-        <span className="relative">{item.label}</span>
-      )}
+      {!collapsed && <span className="relative">{item.label}</span>}
       {!collapsed && item.badge && (
         <span
           className="relative ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold"
           style={{
-            background: active ? "rgba(14,165,233,0.25)" : "rgba(148,163,184,0.12)",
+            background: active
+              ? "rgba(14,165,233,0.25)"
+              : "rgba(148,163,184,0.12)",
             color: active ? "#38bdf8" : "#94a3b8",
           }}
         >
@@ -109,24 +129,29 @@ function NavLink({
         </span>
       )}
     </a>
-  )
+  );
 }
 
+const ADMIN_ROLES = ["admin", "office_manager", "regional_manager"];
+
 export function AppSidebar() {
-  const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
-  const [adminOpen, setAdminOpen] = useState(false)
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const [isPending, startTransition] = useTransition();
+  const [collapsed, setCollapsed] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const showAdmin = user?.role && ADMIN_ROLES.includes(user.role);
 
   const isActive = (href: string) => {
-    if (href === "/") return pathname === "/"
-    return pathname.startsWith(href)
-  }
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
+  };
 
   return (
     <aside
       className={cn(
         "flex h-full shrink-0 flex-col transition-all duration-300",
-        collapsed ? "w-[68px]" : "w-[260px]"
+        collapsed ? "w-[68px]" : "w-[260px]",
       )}
       style={{
         backgroundColor: "#0c111c",
@@ -199,7 +224,10 @@ export function AppSidebar() {
       )}
 
       {/* Main Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Main navigation">
+      <nav
+        className="flex-1 overflow-y-auto px-3 py-3"
+        aria-label="Main navigation"
+      >
         <div className="space-y-0.5">
           {mainNav.map((item) => (
             <NavLink
@@ -211,57 +239,62 @@ export function AppSidebar() {
           ))}
         </div>
 
-        {/* Admin Section */}
-        <div className="mt-8">
-          {!collapsed ? (
-            <button
-              type="button"
-              onClick={() => setAdminOpen(!adminOpen)}
-              className="flex w-full items-center gap-2 px-3 py-1.5 transition-colors hover:text-slate-400"
-              style={{
-                fontSize: "10px",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "rgba(148,163,184,0.35)",
-              }}
-            >
-              <span>Admin</span>
-              <ChevronDown
-                className={cn(
-                  "ml-auto h-3 w-3 transition-transform duration-200",
-                  adminOpen && "rotate-180"
-                )}
-              />
-            </button>
-          ) : (
-            <div
-              className="mx-auto mb-2 h-px w-6 rounded-full"
-              style={{ backgroundColor: "rgba(148,163,184,0.1)" }}
-            />
-          )}
-
-          {(adminOpen || collapsed) && (
-            <div className="mt-1 space-y-0.5">
-              {adminNav.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  active={isActive(item.href)}
-                  collapsed={collapsed}
+        {/* Admin Section - visible only for admin/office_manager/regional_manager */}
+        {showAdmin && (
+          <div className="mt-8">
+            {!collapsed ? (
+              <button
+                type="button"
+                onClick={() => setAdminOpen(!adminOpen)}
+                className="flex w-full items-center gap-2 px-3 py-1.5 transition-colors hover:text-slate-400"
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "rgba(148,163,184,0.35)",
+                }}
+              >
+                <span>Admin</span>
+                <ChevronDown
+                  className={cn(
+                    "ml-auto h-3 w-3 transition-transform duration-200",
+                    adminOpen && "rotate-180",
+                  )}
                 />
-              ))}
-            </div>
-          )}
-        </div>
+              </button>
+            ) : (
+              <div
+                className="mx-auto mb-2 h-px w-6 rounded-full"
+                style={{ backgroundColor: "rgba(148,163,184,0.1)" }}
+              />
+            )}
+
+            {(adminOpen || collapsed) && (
+              <div className="mt-1 space-y-0.5">
+                {adminNav.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    active={isActive(item.href)}
+                    collapsed={collapsed}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* User Section */}
-      <div className="p-3" style={{ borderTop: "1px solid rgba(148,163,184,0.08)" }}>
+      <div
+        className="p-3"
+        style={{ borderTop: "1px solid rgba(148,163,184,0.08)" }}
+      >
         <div
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5",
-            collapsed && "justify-center px-0"
+            collapsed && "justify-center px-0",
           )}
         >
           <div
@@ -271,23 +304,50 @@ export function AppSidebar() {
               boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
             }}
           >
-            AE
+            {user?.firstName?.[0]}
+            {user?.lastName?.[0]}
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-semibold text-slate-200">
-                Austin E.
+                {user?.firstName} {user?.lastName}
               </p>
-              <p className="truncate text-[11px] text-slate-500">Closer</p>
+              <p className="truncate text-[11px] text-slate-500">
+                {user?.role ? (ROLE_DISPLAY_NAMES[user.role] ?? user.role) : ""}
+              </p>
             </div>
           )}
           {!collapsed && (
-            <button
-              type="button"
-              className="rounded-md p-1.5 text-slate-600 transition-colors hover:text-slate-400"
-            >
-              <Settings className="h-3.5 w-3.5" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="rounded-md p-1.5 text-slate-600 transition-colors hover:text-slate-400"
+                  aria-label="User menu"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={isPending}
+                  onClick={() => startTransition(() => signOut())}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {isPending ? "Signing out..." : "Sign Out"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
 
@@ -307,5 +367,5 @@ export function AppSidebar() {
         </button>
       </div>
     </aside>
-  )
+  );
 }

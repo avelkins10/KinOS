@@ -62,12 +62,13 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "supabase": "^2.76.0",
     "@types/node": "^22",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "postcss": "^8.5",
+    "supabase": "^2.76.0",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.21.0",
     "typescript": "5.7.3"
   },
   "pnpm": {
