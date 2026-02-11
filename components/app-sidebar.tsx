@@ -1,13 +1,12 @@
 "use client"
 
+import React from "react"
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Handshake,
   Users,
-  CalendarDays,
-  PenTool,
   BarChart3,
   Building2,
   CreditCard,
@@ -35,8 +34,6 @@ const mainNav: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Leads", href: "/leads", icon: Users, badge: "3" },
   { label: "Deals", href: "/deals", icon: Handshake },
-  { label: "Calendar", href: "/calendar", icon: CalendarDays },
-  { label: "Design Requests", href: "/design-requests", icon: PenTool },
   { label: "Reports", href: "/reports", icon: BarChart3 },
 ]
 
