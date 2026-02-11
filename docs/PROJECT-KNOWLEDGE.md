@@ -2,6 +2,7 @@
 
 > Last updated: 2026-02-11
 > Schema verified against live Supabase database (47 tables + 2 views).
+> Epic 6 Part 1 (migration 010) complete — Aurora design fields on deals.
 > This is the single source of truth for the KinOS project.
 
 ---
@@ -36,14 +37,14 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 | Vercel           | https://kin-os-one.vercel.app            | Deployed, auto-deploys from GitHub |
 | RepCard API      | https://app.repcard.com/api/             | x-api-key auth                     |
 | Aurora API       | https://api.aurorasolar.com              | Bearer token, API version 2024.05  |
-| Aurora Tenant    | 034b1c47-310a-460f-9d5d-b625dd354f12    | KIN Home tenant                    |
+| Aurora Tenant    | 034b1c47-310a-460f-9d5d-b625dd354f12     | KIN Home tenant                    |
 
 ---
 
 ## 3. Database Schema (Verified 2026-02-11)
 
 **Base migration:** `kinos-migration-v1.sql` (1,744 lines) — deployed 2026-02-10
-**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column)
+**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column), 010 (Aurora design fields on deals — design_status, consumption, design request metadata, aurora_sales_mode_url; v_deal_detail updated to 108 cols)
 
 ### Live Object Count: 47 tables + 2 views
 
@@ -67,7 +68,8 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 **UI (1):** filter_presets
 
 **Views (2):**
-- v_deal_detail (94 cols) — full deal with joined contact, closer, setter, office, team, lender
+
+- v_deal_detail (108 cols) — full deal with joined contact, closer, setter, office, team, lender; includes all 14 Aurora design fields from deals
 - v_deal_pipeline (20 cols) — compact pipeline view for kanban/list
 
 ### Key Schema Features:
@@ -82,6 +84,7 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 ### Schema Drift from Blueprint (Users table):
 
 Live users table differs from blueprint. Missing fields that will be needed:
+
 - `kin_id` — KIN-generated unique ID (needed for onboarding platform integration)
 - `job_title` — rep's role title
 - `sequifi_id` — Sequifi rep ID (commission push)
@@ -92,9 +95,10 @@ Live users table differs from blueprint. Missing fields that will be needed:
 Renamed: avatar_url→image_url, is_active→status (enum), last_active_at→last_login_at, repcard_badge_no→repcard_badge_id
 Added by Cursor: bio, external_id, activated_at, deactivated_at, invited_at, license_expiry, license_state
 
-### Aurora Fields on Deals (already exist):
-aurora_project_id (TEXT), aurora_design_id (TEXT), system_size_kw, annual_production_kwh, offset_percentage, panel_count, panel_model, inverter_model, battery_model, battery_count, mounting_type
-**Still needed for Epic 6:** aurora_design_request_id (TEXT)
+### Aurora Fields on Deals:
+
+**Existing:** aurora_project_id, aurora_design_id, system_size_kw, annual_production_kwh, offset_percentage, panel_count, panel_model, inverter_model, battery_model, battery_count, mounting_type  
+**Added by migration 010 (Epic 6 Part 1):** aurora_design_request_id, design_status (not_started | consumption_entered | project_created | design_requested | design_in_progress | design_completed | design_rejected | design_accepted), consumption (monthly_kwh JSONB, annual_kwh, utility_company, utility_tariff, monthly_bill), design request metadata (design_request_type, design_requested_at, design_completed_at, design_request_notes, target_offset, roof_material), aurora_sales_mode_url. Architecture: API for actions (create project, consumption, design request); GET webhooks with query params for design completion; service layer + typed client (Part 2).
 
 ---
 
@@ -178,16 +182,17 @@ The legacy `/api/webhooks/repcard` (create-lead) route delegates to `/appointmen
 | Event                | Route                                        | Handler                                             |
 | -------------------- | -------------------------------------------- | --------------------------------------------------- |
 | appointment_set      | `/api/webhooks/repcard/appointment-set`      | Creates contact + deal + appointment                |
-| appointment_update   | `/api/webhooks/repcard/appointment-update`    | Updates appointment fields (time, location, closer) |
-| appointment_outcome  | `/api/webhooks/repcard/appointment-outcome`   | Records outcome, updates appointment status         |
-| closer_update        | `/api/webhooks/repcard/closer-update`         | Reassigns deal closer                               |
-| status_changed       | `/api/webhooks/repcard/status-changed`        | Updates contact repcard_status                      |
-| contact_type_changed | `/api/webhooks/repcard/contact-type-changed`  | Updates contact type                                |
-| door_knocked         | `/api/webhooks/repcard/door-knocked`          | Logs activity, creates/updates contact              |
+| appointment_update   | `/api/webhooks/repcard/appointment-update`   | Updates appointment fields (time, location, closer) |
+| appointment_outcome  | `/api/webhooks/repcard/appointment-outcome`  | Records outcome, updates appointment status         |
+| closer_update        | `/api/webhooks/repcard/closer-update`        | Reassigns deal closer                               |
+| status_changed       | `/api/webhooks/repcard/status-changed`       | Updates contact repcard_status                      |
+| contact_type_changed | `/api/webhooks/repcard/contact-type-changed` | Updates contact type                                |
+| door_knocked         | `/api/webhooks/repcard/door-knocked`         | Logs activity, creates/updates contact              |
 
 ### 5.3 User Sync (RepCard → KinOS)
 
 RepCard is source of truth for users. KinOS syncs via:
+
 - GET /api/users/minimal (bulk), GET /api/users/{id}/details (individual), PUT /api/users/{id} (push KIN ID to externalId)
 
 ### 5.4 Design Flow (KinOS → Aurora) — Epic 6
@@ -234,28 +239,31 @@ Base URL: `https://app.repcard.com/api` | Auth: `x-api-key` header
 **Auth:** `Authorization: Bearer {api_key}` + `X-Aurora-Api-Version: 2024.05`
 **Tenant ID:** `034b1c47-310a-460f-9d5d-b625dd354f12`
 
-| Action | Method | Endpoint |
-|--------|--------|----------|
-| Create project | POST | /tenants/{tid}/projects |
-| Update project | PUT | /tenants/{tid}/projects/{pid} |
+| Action                         | Method  | Endpoint                                          |
+| ------------------------------ | ------- | ------------------------------------------------- |
+| Create project                 | POST    | /tenants/{tid}/projects                           |
+| Update project                 | PUT     | /tenants/{tid}/projects/{pid}                     |
 | Get/Update consumption profile | GET/PUT | /tenants/{tid}/projects/{pid}/consumption_profile |
-| Create design request | POST | /tenants/{tid}/design_requests |
-| Get design request | GET | /tenants/{tid}/design_requests/{id} |
-| Accept design | POST | /tenants/{tid}/design_requests/{id}/accept |
-| Get design summary | GET | /tenants/{tid}/designs/{did}/summary |
-| Get design assets | GET | /tenants/{tid}/designs/{did}/assets |
-| List modules | GET | /tenants/{tid}/modules |
-| List inverters | GET | /tenants/{tid}/inverters |
+| Create design request          | POST    | /tenants/{tid}/design_requests                    |
+| Get design request             | GET     | /tenants/{tid}/design_requests/{id}               |
+| Accept design                  | POST    | /tenants/{tid}/design_requests/{id}/accept        |
+| Get design summary             | GET     | /tenants/{tid}/designs/{did}/summary              |
+| Get design assets              | GET     | /tenants/{tid}/designs/{did}/assets               |
+| List modules                   | GET     | /tenants/{tid}/modules                            |
+| List inverters                 | GET     | /tenants/{tid}/inverters                          |
 
 ### Aurora Webhook Events (pipeline-critical):
+
 - design_request_completed, design_request_rejected
 - performance_simulation_job_completed
 - agreement_status_changed, financier_contract_status_changed
 
 ### Sales Mode Deeplink:
+
 `https://v2.aurorasolar.com/projects/{project_id}/designs/{design_id}/e-proposal/overview`
 
 ### Test Addresses (instant complete, no credits):
+
 - 901 Mears Ct, Stanford, CA 94305 — Gabled roof
 - 634 Mirada Ave, Stanford, CA 94305 — Hipped roof
 - 600 Montgomery St, San Francisco, CA 94111 — Rejection test (TransAmerica Pyramid)
@@ -271,21 +279,21 @@ Enerflo's deal.projectSubmitted webhook is the template for Quickbase submission
 
 ## 9. Epic Completion Status
 
-| Epic | Name                           | Status      | Notes                                                                                           |
-| ---- | ------------------------------ | ----------- | ----------------------------------------------------------------------------------------------- |
-| 0    | Infrastructure                 | ✅ Complete | Supabase, GitHub, Vercel, schema deployed                                                       |
-| 1    | Auth & User System             | ✅ Complete | Supabase Auth, proxy.ts (Next.js 16), RepCard user sync                                         |
-| 2    | RepCard Integration            | ✅ Complete | Connector webhook, contact/deal creation, user sync                                             |
-| 3    | Pipeline & Deal Management     | ✅ Complete | Kanban, drag-drop, 19 stages, realtime, dashboard, deal detail                                  |
-| 4    | Leads Management               | ✅ Complete | Leads list, lead detail page, notes, attachments, CSV import, filter presets                    |
-| 5    | Calendar & Appointments        | ✅ Complete | 7 RepCard webhook routes, appointments table, calendar (day/week/month/list), dashboard widgets |
-| 6    | Aurora Design Integration      | 📋 Planned  | Consumption form, design requests, Aurora API/webhooks, Sales Mode                              |
-| 7    | Proposal & Pricing Engine      | 📋 Planned  |                                                                                                 |
-| 8    | Financing & Lender Integration | 📋 Planned  |                                                                                                 |
-| 9    | Document Signing               | 📋 Planned  |                                                                                                 |
-| 10   | Submission & Gating Engine     | 📋 Planned  |                                                                                                 |
-| 11   | Admin Panel                    | 📋 Planned  |                                                                                                 |
-| 12   | Reports & Analytics            | 📋 Planned  |                                                                                                 |
+| Epic | Name                           | Status         | Notes                                                                                           |
+| ---- | ------------------------------ | -------------- | ----------------------------------------------------------------------------------------------- |
+| 0    | Infrastructure                 | ✅ Complete    | Supabase, GitHub, Vercel, schema deployed                                                       |
+| 1    | Auth & User System             | ✅ Complete    | Supabase Auth, proxy.ts (Next.js 16), RepCard user sync                                         |
+| 2    | RepCard Integration            | ✅ Complete    | Connector webhook, contact/deal creation, user sync                                             |
+| 3    | Pipeline & Deal Management     | ✅ Complete    | Kanban, drag-drop, 19 stages, realtime, dashboard, deal detail                                  |
+| 4    | Leads Management               | ✅ Complete    | Leads list, lead detail page, notes, attachments, CSV import, filter presets                    |
+| 5    | Calendar & Appointments        | ✅ Complete    | 7 RepCard webhook routes, appointments table, calendar (day/week/month/list), dashboard widgets |
+| 6    | Aurora Design Integration      | 🔄 In progress | Part 1 complete (migration 010, types, docs). Part 2: Aurora API client + service layer.        |
+| 7    | Proposal & Pricing Engine      | 📋 Planned     |                                                                                                 |
+| 8    | Financing & Lender Integration | 📋 Planned     |                                                                                                 |
+| 9    | Document Signing               | 📋 Planned     |                                                                                                 |
+| 10   | Submission & Gating Engine     | 📋 Planned     |                                                                                                 |
+| 11   | Admin Panel                    | 📋 Planned     |                                                                                                 |
+| 12   | Reports & Analytics            | 📋 Planned     |                                                                                                 |
 
 ---
 
@@ -298,7 +306,7 @@ Enerflo's deal.projectSubmitted webhook is the template for Quickbase submission
 | Client component data | API routes, NOT direct server action imports                                |
 | RepCard lead flow     | Manual push via connector (not automatic webhook)                           |
 | Pipeline scope        | KinOS ends at intake_approved. Install tracking = Quickbase.                |
-| Aurora integration    | API for actions + webhooks for reactions. Both needed.                       |
+| Aurora integration    | API for actions + webhooks for reactions. Both needed.                      |
 | Aurora project timing | Create at consumption step, not appointment (don't waste API on no-shows)   |
 | Aurora auto-accept    | auto_accept=true on design requests (reduce closer manual steps)            |
 | Equipment ownership   | Split: Aurora owns catalog, KinOS owns business logic/pricing               |
@@ -311,7 +319,8 @@ Enerflo's deal.projectSubmitted webhook is the template for Quickbase submission
 
 ## 11. Open Items / Future Work
 
-- [ ] Epic 6: Aurora integration (consumption, design requests, webhooks, Sales Mode)
+- [x] Epic 6 Part 1: Migration 010 (Aurora design fields on deals, v_deal_detail, types, docs)
+- [ ] Epic 6 Part 2+: Aurora API client, service layer, webhooks, consumption form, Sales Mode
 - [ ] Add missing user fields: kin_id, job_title, sequifi_id, captiveiq_id, quickbase_record_id
 - [ ] Genability/UtilityAPI integration for utility rate lookup (Option B)
 - [ ] v2: Installs tab — read-only Quickbase install progress visibility

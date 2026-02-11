@@ -1129,6 +1129,7 @@ export type Database = {
           active_appointment_id: string | null;
           active_proposal_id: string | null;
           adders_total: number | null;
+          annual_kwh: number | null;
           annual_production_kwh: number | null;
           annual_usage_kwh: number | null;
           appointment_date: string | null;
@@ -1139,7 +1140,9 @@ export type Database = {
           appointment_outcome_id: number | null;
           appointment_timezone: string | null;
           aurora_design_id: string | null;
+          aurora_design_request_id: string | null;
           aurora_project_id: string | null;
+          aurora_sales_mode_url: string | null;
           battery_count: number | null;
           battery_model: string | null;
           both_spouses_present: boolean | null;
@@ -1153,6 +1156,11 @@ export type Database = {
           dealer_fee_percentage: number | null;
           deleted_at: string | null;
           deleted_by: string | null;
+          design_completed_at: string | null;
+          design_request_notes: string | null;
+          design_request_type: string | null;
+          design_requested_at: string | null;
+          design_status: string | null;
           enerflo_deal_id: string | null;
           enerflo_short_code: string | null;
           financing_application_id: string | null;
@@ -1182,7 +1190,9 @@ export type Database = {
           loan_amount: number | null;
           loan_product: string | null;
           loan_term_months: number | null;
+          monthly_bill: number | null;
           monthly_payment: number | null;
+          monthly_kwh: Json | null;
           mounting_type: string | null;
           net_ppw: number | null;
           net_price: number | null;
@@ -1192,6 +1202,7 @@ export type Database = {
           panel_model: string | null;
           quickbase_deal_id: string | null;
           rejection_reason: string | null;
+          roof_material: string | null;
           repcard_appointment_id: number | null;
           setter_id: string | null;
           source: string | null;
@@ -1201,14 +1212,18 @@ export type Database = {
           submitted_at: string | null;
           submitted_by: string | null;
           system_size_kw: number | null;
+          target_offset: number | null;
           team_id: string | null;
           updated_at: string | null;
           updated_by: string | null;
+          utility_company: string | null;
+          utility_tariff: string | null;
         };
         Insert: {
           active_appointment_id?: string | null;
           active_proposal_id?: string | null;
           adders_total?: number | null;
+          annual_kwh?: number | null;
           annual_production_kwh?: number | null;
           annual_usage_kwh?: number | null;
           appointment_date?: string | null;
@@ -1219,7 +1234,9 @@ export type Database = {
           appointment_outcome_id?: number | null;
           appointment_timezone?: string | null;
           aurora_design_id?: string | null;
+          aurora_design_request_id?: string | null;
           aurora_project_id?: string | null;
+          aurora_sales_mode_url?: string | null;
           battery_count?: number | null;
           battery_model?: string | null;
           both_spouses_present?: boolean | null;
@@ -1233,6 +1250,11 @@ export type Database = {
           dealer_fee_percentage?: number | null;
           deleted_at?: string | null;
           deleted_by?: string | null;
+          design_completed_at?: string | null;
+          design_request_notes?: string | null;
+          design_request_type?: string | null;
+          design_requested_at?: string | null;
+          design_status?: string | null;
           enerflo_deal_id?: string | null;
           enerflo_short_code?: string | null;
           financing_application_id?: string | null;
@@ -1262,7 +1284,9 @@ export type Database = {
           loan_amount?: number | null;
           loan_product?: string | null;
           loan_term_months?: number | null;
+          monthly_bill?: number | null;
           monthly_payment?: number | null;
+          monthly_kwh?: Json | null;
           mounting_type?: string | null;
           net_ppw?: number | null;
           net_price?: number | null;
@@ -1272,6 +1296,7 @@ export type Database = {
           panel_model?: string | null;
           quickbase_deal_id?: string | null;
           rejection_reason?: string | null;
+          roof_material?: string | null;
           repcard_appointment_id?: number | null;
           setter_id?: string | null;
           source?: string | null;
@@ -1281,14 +1306,18 @@ export type Database = {
           submitted_at?: string | null;
           submitted_by?: string | null;
           system_size_kw?: number | null;
+          target_offset?: number | null;
           team_id?: string | null;
           updated_at?: string | null;
           updated_by?: string | null;
+          utility_company?: string | null;
+          utility_tariff?: string | null;
         };
         Update: {
           active_appointment_id?: string | null;
           active_proposal_id?: string | null;
           adders_total?: number | null;
+          annual_kwh?: number | null;
           annual_production_kwh?: number | null;
           annual_usage_kwh?: number | null;
           appointment_date?: string | null;
@@ -1299,7 +1328,9 @@ export type Database = {
           appointment_outcome_id?: number | null;
           appointment_timezone?: string | null;
           aurora_design_id?: string | null;
+          aurora_design_request_id?: string | null;
           aurora_project_id?: string | null;
+          aurora_sales_mode_url?: string | null;
           battery_count?: number | null;
           battery_model?: string | null;
           both_spouses_present?: boolean | null;
@@ -1313,6 +1344,11 @@ export type Database = {
           dealer_fee_percentage?: number | null;
           deleted_at?: string | null;
           deleted_by?: string | null;
+          design_completed_at?: string | null;
+          design_request_notes?: string | null;
+          design_request_type?: string | null;
+          design_requested_at?: string | null;
+          design_status?: string | null;
           enerflo_deal_id?: string | null;
           enerflo_short_code?: string | null;
           financing_application_id?: string | null;
@@ -1342,7 +1378,9 @@ export type Database = {
           loan_amount?: number | null;
           loan_product?: string | null;
           loan_term_months?: number | null;
+          monthly_bill?: number | null;
           monthly_payment?: number | null;
+          monthly_kwh?: Json | null;
           mounting_type?: string | null;
           net_ppw?: number | null;
           net_price?: number | null;
@@ -1352,6 +1390,7 @@ export type Database = {
           panel_model?: string | null;
           quickbase_deal_id?: string | null;
           rejection_reason?: string | null;
+          roof_material?: string | null;
           repcard_appointment_id?: number | null;
           setter_id?: string | null;
           source?: string | null;
@@ -1361,9 +1400,12 @@ export type Database = {
           submitted_at?: string | null;
           submitted_by?: string | null;
           system_size_kw?: number | null;
+          target_offset?: number | null;
           team_id?: string | null;
           updated_at?: string | null;
           updated_by?: string | null;
+          utility_company?: string | null;
+          utility_tariff?: string | null;
         };
         Relationships: [
           {
@@ -3548,6 +3590,7 @@ export type Database = {
         Row: {
           active_proposal_id: string | null;
           adders_total: number | null;
+          annual_kwh: number | null;
           annual_production_kwh: number | null;
           annual_usage_kwh: number | null;
           appointment_date: string | null;
@@ -3558,7 +3601,9 @@ export type Database = {
           appointment_outcome_id: number | null;
           appointment_timezone: string | null;
           aurora_design_id: string | null;
+          aurora_design_request_id: string | null;
           aurora_project_id: string | null;
+          aurora_sales_mode_url: string | null;
           battery_count: number | null;
           battery_model: string | null;
           both_spouses_present: boolean | null;
@@ -3583,6 +3628,11 @@ export type Database = {
           dealer_fee_percentage: number | null;
           deleted_at: string | null;
           deleted_by: string | null;
+          design_completed_at: string | null;
+          design_request_notes: string | null;
+          design_request_type: string | null;
+          design_requested_at: string | null;
+          design_status: string | null;
           enerflo_deal_id: string | null;
           enerflo_short_code: string | null;
           financing_application_id: string | null;
@@ -3613,8 +3663,10 @@ export type Database = {
           loan_amount: number | null;
           loan_product: string | null;
           loan_term_months: number | null;
+          monthly_bill: number | null;
           monthly_electric_bill: number | null;
           monthly_payment: number | null;
+          monthly_kwh: Json | null;
           mounting_type: string | null;
           net_ppw: number | null;
           net_price: number | null;
@@ -3625,6 +3677,7 @@ export type Database = {
           panel_model: string | null;
           quickbase_deal_id: string | null;
           rejection_reason: string | null;
+          roof_material: string | null;
           repcard_appointment_id: number | null;
           setter_id: string | null;
           setter_name: string | null;
@@ -3635,11 +3688,13 @@ export type Database = {
           submitted_at: string | null;
           submitted_by: string | null;
           system_size_kw: number | null;
+          target_offset: number | null;
           team_id: string | null;
           team_name: string | null;
           updated_at: string | null;
           updated_by: string | null;
           utility_company: string | null;
+          utility_tariff: string | null;
         };
         Relationships: [
           {
