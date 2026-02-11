@@ -8,8 +8,8 @@ const financingSteps = ["Applied", "Approved", "Stips Pending", "Stips Cleared",
 
 function getStepIndex(stage: string): number {
   switch (stage) {
-    case "financing_applied": return 0
-    case "financing_approved": return 1
+    case "financing": return 0
+    case "contracting": return 1
     default: return -1
   }
 }
@@ -30,7 +30,7 @@ export function FinancingTab({ deal }: { deal: Deal }) {
   }
 
   const currentStep = getStepIndex(deal.stage)
-  const hasStips = deal.stage === "financing_approved"
+  const hasStips = deal.stage === "financing"
 
   return (
     <div className="space-y-6">

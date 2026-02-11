@@ -13,8 +13,8 @@ interface DocItem {
 }
 
 function getMockDocs(deal: Deal): DocItem[] {
-  const isSigned = deal.stage === "contract_signed" || deal.stage === "submitted"
-  if (!isSigned && deal.stage !== "financing_approved") return []
+  const isSigned = deal.stage === "contracting" || deal.stage === "pre_intake" || deal.stage === "submitted" || deal.stage === "intake_approved"
+  if (!isSigned && deal.stage !== "financing") return []
 
   if (isSigned) {
     return [

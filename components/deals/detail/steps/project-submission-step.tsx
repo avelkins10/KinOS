@@ -17,7 +17,7 @@ interface ReviewItem {
 function getReviewItems(deal: Deal): ReviewItem[] {
   const hasDesign = !!deal.systemSize
   const hasLender = !!deal.lender
-  const isSigned = deal.stage === "contract_signed" || deal.stage === "submitted"
+  const isSigned = deal.stage === "contracting" || deal.stage === "pre_intake" || deal.stage === "submitted" || deal.stage === "intake_approved"
   return [
     { label: "System Design", value: hasDesign ? `${deal.systemSize} kW, ${deal.panelCount} panels` : "Not complete", icon: Zap, ok: hasDesign },
     { label: "Proposal", value: deal.dealValue > 0 ? `$${deal.dealValue.toLocaleString()} net` : "Not created", icon: FileText, ok: deal.dealValue > 0 },

@@ -15,7 +15,7 @@ interface Doc {
 }
 
 function getMockDocs(deal: Deal): Doc[] {
-  if (deal.stage !== "contract_signed" && deal.stage !== "submitted") return []
+  if (deal.stage !== "contracting" && deal.stage !== "pre_intake" && deal.stage !== "submitted" && deal.stage !== "intake_approved") return []
   return [
     { id: "doc1", name: "Solar Installation Agreement", recipient: deal.customerName, status: "signed", sentAt: "Feb 2, 2026", viewedAt: "Feb 2, 2026", signedAt: "Feb 3, 2026" },
     { id: "doc2", name: "Right to Cancel", recipient: deal.customerName, status: "signed", sentAt: "Feb 2, 2026", viewedAt: "Feb 2, 2026", signedAt: "Feb 3, 2026" },

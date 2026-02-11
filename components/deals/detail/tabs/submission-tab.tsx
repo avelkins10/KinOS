@@ -17,12 +17,12 @@ function getGates(deal: Deal): Gate[] {
   const hasDesign = !!deal.systemSize
   const hasLender = !!deal.lender
   const hasValue = deal.dealValue > 0
-  const isSigned = deal.stage === "contract_signed" || deal.stage === "submitted"
+  const isSigned = deal.stage === "contracting" || deal.stage === "pre_intake" || deal.stage === "submitted" || deal.stage === "intake_approved"
 
   return [
     { id: "g1", label: "Design completed", type: "auto", passed: hasDesign, detail: hasDesign ? "Aurora" : undefined },
     { id: "g2", label: "Proposal finalized", type: "auto", passed: hasValue, detail: hasValue ? "Auto-verified" : undefined },
-    { id: "g3", label: "Financing approved", type: "auto", passed: hasLender && (deal.stage === "financing_approved" || deal.stage === "contract_signed" || deal.stage === "submitted"), detail: hasLender ? deal.lender ?? undefined : undefined },
+    { id: "g3", label: "Financing approved", type: "auto", passed: hasLender && (deal.stage === "financing" || isSigned), detail: hasLender ? deal.lender ?? undefined : undefined },
     { id: "g4", label: "Contract signed", type: "auto", passed: isSigned, detail: isSigned ? "DocuSign" : undefined },
     { id: "g5", label: "Utility bill uploaded", type: "upload", passed: isSigned },
     { id: "g6", label: "Photo ID verified", type: "upload", passed: isSigned },

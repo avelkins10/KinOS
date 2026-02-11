@@ -39,19 +39,21 @@ export function getStepIndexFromStage(stage: DealStage): number {
   switch (stage) {
     case "new_lead":
       return 0
-    case "appointment_set":
-    case "appointment_completed":
+    case "design_requested":
       return 1
-    case "design_in_progress":
+    case "design_complete":
       return 2
-    case "proposal_sent":
+    case "proposal":
       return 3
-    case "financing_applied":
-    case "financing_approved":
+    case "financing":
       return 4
-    case "contract_signed":
+    case "contracting":
       return 5
+    case "pre_intake":
+      return 7
     case "submitted":
+      return 8
+    case "intake_approved":
       return 8
     default:
       return 0

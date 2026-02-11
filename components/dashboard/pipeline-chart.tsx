@@ -13,14 +13,14 @@ import {
 
 const stageOrder: DealStage[] = [
   "new_lead",
-  "appointment_set",
-  "appointment_completed",
-  "design_in_progress",
-  "proposal_sent",
-  "financing_applied",
-  "financing_approved",
-  "contract_signed",
+  "design_requested",
+  "design_complete",
+  "proposal",
+  "financing",
+  "contracting",
+  "pre_intake",
   "submitted",
+  "intake_approved",
 ]
 
 const barColors = [
@@ -28,10 +28,10 @@ const barColors = [
   "hsl(199, 89%, 48%)",
   "hsl(173, 58%, 39%)",
   "hsl(35, 95%, 55%)",
-  "hsl(199, 89%, 48%)",
   "hsl(38, 92%, 50%)",
-  "hsl(152, 60%, 42%)",
-  "hsl(173, 58%, 39%)",
+  "hsl(199, 89%, 48%)",
+  "hsl(262, 52%, 55%)",
+  "hsl(199, 89%, 48%)",
   "hsl(152, 60%, 42%)",
 ]
 

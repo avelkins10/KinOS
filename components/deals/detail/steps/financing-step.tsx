@@ -8,13 +8,14 @@ const financingSteps = ["Applied", "Approved", "Stips Cleared", "Funded"]
 
 function getFinancingStep(stage: string): number {
   switch (stage) {
-    case "financing_applied":
+    case "financing":
       return 0
-    case "financing_approved":
+    case "contracting":
       return 1
-    case "contract_signed":
+    case "pre_intake":
       return 2
     case "submitted":
+    case "intake_approved":
       return 3
     default:
       return -1
@@ -53,7 +54,7 @@ export function FinancingStep({ deal }: { deal: Deal }) {
   }
 
   const currentFinStep = getFinancingStep(deal.stage)
-  const hasStips = deal.stage === "financing_approved"
+  const hasStips = deal.stage === "financing"
 
   return (
     <div className="space-y-6">

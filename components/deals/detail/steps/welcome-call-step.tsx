@@ -12,7 +12,7 @@ interface ChecklistItem {
 }
 
 function getChecklist(deal: Deal): ChecklistItem[] {
-  const isLate = deal.stage === "submitted" || deal.stage === "contract_signed"
+  const isLate = deal.stage === "submitted" || deal.stage === "intake_approved" || deal.stage === "pre_intake" || deal.stage === "contracting"
   return [
     { id: "wc1", label: "Confirm installation address", description: "Verify the customer's installation address matches the contract.", completed: isLate },
     { id: "wc2", label: "Review system details", description: `${deal.systemSize ?? 0} kW system, ${deal.panelCount ?? 0} panels, ${deal.inverterBrand ?? "TBD"} inverter.`, completed: isLate },

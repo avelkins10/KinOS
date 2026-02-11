@@ -26,13 +26,14 @@ const monthlyData = [
 
 const stageDistribution = [
   { name: "New Lead", value: DEALS.filter((d) => d.stage === "new_lead").length, color: "hsl(var(--chart-4))" },
-  { name: "Appt Set", value: DEALS.filter((d) => d.stage === "appointment_set").length, color: "hsl(var(--primary))" },
-  { name: "Appt Done", value: DEALS.filter((d) => d.stage === "appointment_completed").length, color: "hsl(var(--chart-2))" },
-  { name: "Design", value: DEALS.filter((d) => d.stage === "design_in_progress").length, color: "hsl(var(--accent))" },
-  { name: "Proposal", value: DEALS.filter((d) => d.stage === "proposal_sent").length, color: "hsl(var(--chart-1))" },
-  { name: "Financing", value: DEALS.filter((d) => ["financing_applied", "financing_approved"].includes(d.stage)).length, color: "hsl(var(--warning))" },
-  { name: "Contract", value: DEALS.filter((d) => d.stage === "contract_signed").length, color: "hsl(var(--success))" },
-  { name: "Submitted", value: DEALS.filter((d) => d.stage === "submitted").length, color: "hsl(var(--chart-2))" },
+  { name: "Design Req", value: DEALS.filter((d) => d.stage === "design_requested").length, color: "hsl(var(--primary))" },
+  { name: "Design Done", value: DEALS.filter((d) => d.stage === "design_complete").length, color: "hsl(var(--chart-2))" },
+  { name: "Proposal", value: DEALS.filter((d) => d.stage === "proposal").length, color: "hsl(var(--accent))" },
+  { name: "Financing", value: DEALS.filter((d) => d.stage === "financing").length, color: "hsl(var(--warning))" },
+  { name: "Contracting", value: DEALS.filter((d) => d.stage === "contracting").length, color: "hsl(var(--chart-1))" },
+  { name: "Pre-Intake", value: DEALS.filter((d) => d.stage === "pre_intake").length, color: "hsl(var(--chart-4))" },
+  { name: "Submitted", value: DEALS.filter((d) => d.stage === "submitted").length, color: "hsl(var(--primary))" },
+  { name: "Approved", value: DEALS.filter((d) => d.stage === "intake_approved").length, color: "hsl(var(--success))" },
 ]
 
 export default function ReportsPage() {

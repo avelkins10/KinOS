@@ -5,7 +5,7 @@ import { DEALS, STAGE_LABELS, STAGE_COLORS } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { Search, Phone, MapPin, ArrowUpRight, List, LayoutGrid } from "lucide-react"
 
-const earlyStages = ["new_lead", "appointment_set", "appointment_completed"] as const
+const earlyStages = ["new_lead", "design_requested"] as const
 type ViewMode = "list" | "grid"
 
 export default function LeadsPage() {
