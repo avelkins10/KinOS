@@ -10,12 +10,14 @@
 KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the full deal lifecycle from lead intake through installation submission.
 
 **Tech Stack:**
+
 - Frontend: Next.js 16 (App Router), TypeScript, Tailwind CSS, shadcn/ui
 - Backend: Supabase (Postgres, Auth, Realtime, Storage, Edge Functions)
 - Hosting: Vercel
 - Source Control: GitHub (private repo)
 
 **Key Integrations:**
+
 - RepCard (lead intake, user sync)
 - Aurora Solar (design, proposals, financing)
 - PandaDoc / SignNow (document signing)
@@ -26,13 +28,13 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 
 ## 2. Infrastructure
 
-| Resource | URL/ID | Notes |
-|----------|--------|-------|
-| GitHub Repo | https://github.com/avelkins10/KinOS.git | Private |
-| Supabase Project | https://tmfbggewmqcwryhzgrct.supabase.co | Project ref: tmfbggewmqcwryhzgrct |
-| Vercel | https://kin-os-one.vercel.app | Deployed, auto-deploys from GitHub |
-| RepCard API | https://app.repcard.com/api/ | x-api-key auth |
-| Aurora API | https://docs.aurorasolar.com | Bearer token auth |
+| Resource         | URL/ID                                   | Notes                              |
+| ---------------- | ---------------------------------------- | ---------------------------------- |
+| GitHub Repo      | https://github.com/avelkins10/KinOS.git  | Private                            |
+| Supabase Project | https://tmfbggewmqcwryhzgrct.supabase.co | Project ref: tmfbggewmqcwryhzgrct  |
+| Vercel           | https://kin-os-one.vercel.app            | Deployed, auto-deploys from GitHub |
+| RepCard API      | https://app.repcard.com/api/             | x-api-key auth                     |
+| Aurora API       | https://docs.aurorasolar.com             | Bearer token auth                  |
 
 ---
 
@@ -40,9 +42,9 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 
 **Migration file:** `kinos-migration-v1.sql` (1,744 lines)
 **Status:** ✅ Deployed to Supabase (2026-02-10)
-**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 005 (stage fix), 006 (filter_presets + workflow tables)
+**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column)
 
-### Table Summary (43+ tables):
+### Table Summary (44+ tables):
 
 **Org Hierarchy:** companies, offices, teams, roles
 **Users:** users, user_lender_credentials, user_integration_settings
@@ -53,6 +55,7 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 **Documents:** document_templates, document_envelopes
 **Gates:** gate_definitions, gate_completions
 **Workflow:** workflow_step_definitions, deal_workflow_progress
+**Appointments:** appointments (with RLS, history tracking, RepCard integration)
 **Files:** attachments
 **Notes:** notes, note_edits
 **History/Audit:** deal_stage_history, deal_assignment_history, contact_change_history, deal_snapshots, audit_log
@@ -62,11 +65,13 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 **UI:** filter_presets
 
 ### Key Schema Features:
+
 - `updated_by UUID` on all major tables
 - `deleted_at` / `deleted_by` soft deletes on: contacts, deals, proposals, attachments, notes, financing_applications, document_envelopes
 - Postgres triggers: auto `updated_at`, auto `deal_number` generation (KIN-2026-00001), auto stage history, auto assignment history, auto contact change tracking
-- 37 RLS policies: company isolation, soft-delete filtering, admin-only audit tables
+- 37+ RLS policies: company isolation, soft-delete filtering, admin-only audit tables, role-based appointment visibility
 - Deal number format: `KIN-{YEAR}-{SEQUENCE}` (auto-generated)
+- Appointments: status constraint (scheduled/confirmed/completed/no_show/cancelled/rescheduled), type constraint (in_home/virtual/phone/follow_up), `duration_minutes DEFAULT 60`, `is_active` flag for soft filtering
 
 ---
 
@@ -84,6 +89,7 @@ Also: cancelled, lost
 ```
 
 **Stage categories:**
+
 - Lead: new_lead, appointment_set, appointment_sat
 - Design: design_requested, design_complete
 - Proposal: proposal_sent, proposal_accepted
@@ -98,6 +104,35 @@ Also: cancelled, lost
 
 **Important:** KinOS pipeline ENDS at intake_approved. Everything after (install scheduling, permitting, inspection, PTO) lives in Quickbase. A future v2 "Installs" tab will provide read-only visibility into Quickbase install progress.
 
+### App Routes
+
+**Pages:**
+
+- `/` — Dashboard (pipeline summary, appointments widget, activity feed, financing alerts)
+- `/deals` — Deals list (kanban + list views, filters, drag-drop stage transitions)
+- `/deals/[id]` — Deal detail (workflow stepper, tabs: overview, financing, files, submission)
+- `/leads` — Leads management (list, filters, CSV import, create lead dialog)
+- `/leads/[id]` — Lead detail (contact info, assignments, appointments, deals, notes, attachments)
+- `/calendar` — Calendar (day/week/month/list views, appointment cards)
+- `/reports` — Reports (pipeline funnel, stage distribution)
+- `/design-requests` — Design requests queue
+- `/admin/*` — Admin panels (equipment, gates, integrations, lenders, offices, pricing, users)
+- `/login` — Auth login page
+
+**API Routes:**
+
+- `/api/deals` — Deals CRUD + search
+- `/api/deals/[id]/notes` — Deal notes
+- `/api/deals/transition` — Stage transitions
+- `/api/contacts` — Contacts CRUD
+- `/api/contacts/[id]` — Contact detail + assign
+- `/api/appointments` — Appointments CRUD + cancel
+- `/api/attachments` — Attachments CRUD
+- `/api/notes` — Notes CRUD
+- `/api/filter-presets` — Filter presets CRUD
+- `/api/webhooks/repcard/*` — 7 RepCard webhook routes (see 5.2)
+- `/api/webhooks/aurora` — Aurora design webhooks
+
 ---
 
 ## 5. Data Flow Architecture
@@ -107,6 +142,7 @@ Also: cancelled, lost
 **Trigger:** Rep manually clicks "Send to KinOS" button in RepCard Connectors.
 
 **RepCard Connector Config:**
+
 - Connector Type: Custom
 - Type: Web
 - Method: POST
@@ -116,15 +152,18 @@ Also: cancelled, lost
 **Fields sent from RepCard:**
 
 Contact Fields:
+
 - customers.id (RepCard customer ID)
 - customers.firstName, lastName, email, phoneNumber, fullPhoneNumber, countryCode
 - customers.address, city, state, zip
 - customers.type (Contact Type), statusId
 
 User Fields:
+
 - user.id, firstName, lastName, email, jobTitle
 
 **KinOS webhook handler:**
+
 1. Validates payload
 2. Looks up or creates contact (match on repcard_customer_id or phone+email)
 3. Looks up KinOS user by repcard_user_id
@@ -132,21 +171,24 @@ User Fields:
 5. Logs webhook event
 6. Returns 200 OK
 
-### 5.2 RepCard Webhook Events (7 events — only 1 wired currently)
+### 5.2 RepCard Webhook Routes (7 events — all wired)
 
-| Event | Status | Handler |
-|-------|--------|---------|
-| appointment_set (via connector) | ✅ Wired | Creates contact + deal |
-| appointment_update | ❌ Not wired | Should update deal appointment fields |
-| appointment_outcome | ❌ Not wired | Should update deal appointment_outcome |
-| closer_update | ❌ Not wired | Should reassign deal closer |
-| status_changed | ❌ Not wired | Should update contact repcard_status |
-| contact_type_changed | ❌ Not wired | Should update contact contact_type |
-| door_knocked | ❌ Not wired | Log activity (low priority) |
+The legacy `/api/webhooks/repcard` (create-lead) route now delegates to `/appointment-set`.
+
+| Event                | Route                                        | Status   | Handler                                             |
+| -------------------- | -------------------------------------------- | -------- | --------------------------------------------------- |
+| appointment_set      | `/api/webhooks/repcard/appointment-set`      | ✅ Wired | Creates contact + deal + appointment                |
+| appointment_update   | `/api/webhooks/repcard/appointment-update`   | ✅ Wired | Updates appointment fields (time, location, closer) |
+| appointment_outcome  | `/api/webhooks/repcard/appointment-outcome`  | ✅ Wired | Records outcome, updates appointment status         |
+| closer_update        | `/api/webhooks/repcard/closer-update`        | ✅ Wired | Reassigns deal closer                               |
+| status_changed       | `/api/webhooks/repcard/status-changed`       | ✅ Wired | Updates contact repcard_status                      |
+| contact_type_changed | `/api/webhooks/repcard/contact-type-changed` | ✅ Wired | Updates contact type                                |
+| door_knocked         | `/api/webhooks/repcard/door-knocked`         | ✅ Wired | Logs activity, creates/updates contact              |
 
 ### 5.3 User Sync (RepCard → KinOS)
 
 RepCard is source of truth for users (reps). KinOS syncs via:
+
 - RepCard GET /api/users/minimal (bulk sync)
 - RepCard GET /api/users/{id}/details (individual)
 - RepCard PUT /api/users/{id} (update, push KIN ID to externalId)
@@ -205,15 +247,15 @@ Auth: `x-api-key` header
 
 ### Endpoints:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /users/minimal?company_id={id}&per_page={n}&search={q} | List users |
-| GET | /users/{id}/details | Get user details |
-| PUT | /users/{id} | Update user |
-| POST | /users/{id}/unlink | Remove user |
-| PUT | /users/{id}/activate-deactivate | Activate/deactivate user |
-| GET | /customers/{id} | Get customer |
-| GET | /customers/{id}/attachments?per_page={n} | Get customer attachments |
+| Method | Endpoint                                               | Description              |
+| ------ | ------------------------------------------------------ | ------------------------ |
+| GET    | /users/minimal?company_id={id}&per_page={n}&search={q} | List users               |
+| GET    | /users/{id}/details                                    | Get user details         |
+| PUT    | /users/{id}                                            | Update user              |
+| POST   | /users/{id}/unlink                                     | Remove user              |
+| PUT    | /users/{id}/activate-deactivate                        | Activate/deactivate user |
+| GET    | /customers/{id}                                        | Get customer             |
+| GET    | /customers/{id}/attachments?per_page={n}               | Get customer attachments |
 
 ### Key RepCard fields:
 
@@ -221,6 +263,7 @@ Auth: `x-api-key` header
 **Customer:** id, firstName, lastName, email, phoneNumber, address, city, state, zip, latitude, longitude, statusId, statusTitle, type, userId, ownerId, contactSource
 
 ### RepCard Connector Config:
+
 - Located in RepCard admin → Connectors → Add Connector
 - Each field can be toggled on/off for the payload
 - See repcard-setup.md for full field list
@@ -238,64 +281,64 @@ Key: Enerflo's deal.projectSubmitted webhook structure is the template for Quick
 
 ## 8. Aurora Solar API Endpoints (Planned)
 
-| Action | Method | Endpoint | When |
-|--------|--------|----------|------|
-| Create project | POST | /tenants/{tid}/projects | "Request Design" |
-| Create consumption profile | POST | /tenants/{tid}/projects/{pid}/consumption_profiles | With project |
-| Create design request | POST | /tenants/{tid}/projects/{pid}/design_requests | After consumption |
-| Get designs | GET | /tenants/{tid}/projects/{pid}/designs | On webhook/poll |
-| Get design summary | GET | /tenants/{tid}/designs/{did}/summary | Design complete |
-| Get design assets | GET | /tenants/{tid}/designs/{did}/assets | Panel layout |
-| Get/Set pricing | GET/PUT | /tenants/{tid}/designs/{did}/pricing | Pricing sync |
-| Manage adders | POST/DELETE | /tenants/{tid}/designs/{did}/pricing/adders | Pricing sync |
-| Get financings | GET | /tenants/{tid}/projects/{pid}/financings | After pricing |
-| Get web proposal | GET | /tenants/{tid}/projects/{pid}/web_proposals | Shareable URL |
-| Webhooks | — | Configured in Aurora | design_complete, etc. |
+| Action                     | Method      | Endpoint                                           | When                  |
+| -------------------------- | ----------- | -------------------------------------------------- | --------------------- |
+| Create project             | POST        | /tenants/{tid}/projects                            | "Request Design"      |
+| Create consumption profile | POST        | /tenants/{tid}/projects/{pid}/consumption_profiles | With project          |
+| Create design request      | POST        | /tenants/{tid}/projects/{pid}/design_requests      | After consumption     |
+| Get designs                | GET         | /tenants/{tid}/projects/{pid}/designs              | On webhook/poll       |
+| Get design summary         | GET         | /tenants/{tid}/designs/{did}/summary               | Design complete       |
+| Get design assets          | GET         | /tenants/{tid}/designs/{did}/assets                | Panel layout          |
+| Get/Set pricing            | GET/PUT     | /tenants/{tid}/designs/{did}/pricing               | Pricing sync          |
+| Manage adders              | POST/DELETE | /tenants/{tid}/designs/{did}/pricing/adders        | Pricing sync          |
+| Get financings             | GET         | /tenants/{tid}/projects/{pid}/financings           | After pricing         |
+| Get web proposal           | GET         | /tenants/{tid}/projects/{pid}/web_proposals        | Shareable URL         |
+| Webhooks                   | —           | Configured in Aurora                               | design_complete, etc. |
 
 ---
 
 ## 9. Epic Completion Status
 
-| Epic | Name | Status | Notes |
-|------|------|--------|-------|
-| 0 | Infrastructure | ✅ Complete | Supabase, GitHub, Vercel, schema deployed |
-| 1 | Auth & User System | ✅ Complete | Supabase Auth, proxy.ts (Next.js 16), RepCard user sync |
-| 2 | RepCard Integration | ✅ Complete | Connector webhook, contact/deal creation, user sync |
-| 3 | Pipeline & Deal Management | ✅ Complete | Kanban, drag-drop, 19 stages, realtime, dashboard, deal detail |
-| 4 | Leads Management | 🔄 In Progress | Leads list, lead detail, notes, attachments, CSV import |
-| 5 | Calendar & Appointments | 📋 Planned | |
-| 6 | Aurora Design Integration | 📋 Planned | |
-| 7 | Proposal & Pricing Engine | 📋 Planned | |
-| 8 | Financing & Lender Integration | 📋 Planned | |
-| 9 | Document Signing | 📋 Planned | |
-| 10 | Submission & Gating Engine | 📋 Planned | |
-| 11 | Admin Panel | 📋 Planned | |
-| 12 | Reports & Analytics | 📋 Planned | |
+| Epic | Name                           | Status      | Notes                                                                                           |
+| ---- | ------------------------------ | ----------- | ----------------------------------------------------------------------------------------------- |
+| 0    | Infrastructure                 | ✅ Complete | Supabase, GitHub, Vercel, schema deployed                                                       |
+| 1    | Auth & User System             | ✅ Complete | Supabase Auth, proxy.ts (Next.js 16), RepCard user sync                                         |
+| 2    | RepCard Integration            | ✅ Complete | Connector webhook, contact/deal creation, user sync                                             |
+| 3    | Pipeline & Deal Management     | ✅ Complete | Kanban, drag-drop, 19 stages, realtime, dashboard, deal detail                                  |
+| 4    | Leads Management               | ✅ Complete | Leads list, lead detail page, notes, attachments, CSV import, filter presets                    |
+| 5    | Calendar & Appointments        | ✅ Complete | 7 RepCard webhook routes, appointments table, calendar (day/week/month/list), dashboard widgets |
+| 6    | Aurora Design Integration      | 📋 Planned  |                                                                                                 |
+| 7    | Proposal & Pricing Engine      | 📋 Planned  |                                                                                                 |
+| 8    | Financing & Lender Integration | 📋 Planned  |                                                                                                 |
+| 9    | Document Signing               | 📋 Planned  |                                                                                                 |
+| 10   | Submission & Gating Engine     | 📋 Planned  |                                                                                                 |
+| 11   | Admin Panel                    | 📋 Planned  |                                                                                                 |
+| 12   | Reports & Analytics            | 📋 Planned  |                                                                                                 |
 
 ---
 
 ## 10. Key Architecture Decisions
 
-| Decision | Resolution |
-|----------|-----------|
-| Next.js version | 16 (App Router). Middleware renamed to proxy.ts. |
-| Auth strategy | Supabase Auth + RLS. No self-registration. Admin creates accounts. |
-| Client component data | API routes, NOT direct server action imports |
-| RepCard lead flow | Manual push via connector (not automatic webhook) |
-| Pipeline scope | KinOS ends at intake_approved. Install tracking = Quickbase. |
-| Aurora integration | API + webhooks, no iframe. KinOS = pricing brain, Aurora = design layer. |
-| Equipment ownership | Split: Aurora owns catalog, KinOS owns business logic/pricing |
-| Document signing | PandaDoc primary, SignNow fallback |
-| Commission flow | KinOS → Quickbase → Sequifi/CaptiveIQ (no direct push) |
-| Launch strategy | Full cutover from Enerflo. New deals in KinOS, old deals finish in Enerflo. |
-| Pricing engine | Typed TypeScript service with Big.js, not configurable function graph |
-| v2 Installs tab | Read-only visibility into Quickbase install progress for closers |
+| Decision              | Resolution                                                                  |
+| --------------------- | --------------------------------------------------------------------------- |
+| Next.js version       | 16 (App Router). Middleware renamed to proxy.ts.                            |
+| Auth strategy         | Supabase Auth + RLS. No self-registration. Admin creates accounts.          |
+| Client component data | API routes, NOT direct server action imports                                |
+| RepCard lead flow     | Manual push via connector (not automatic webhook)                           |
+| Pipeline scope        | KinOS ends at intake_approved. Install tracking = Quickbase.                |
+| Aurora integration    | API + webhooks, no iframe. KinOS = pricing brain, Aurora = design layer.    |
+| Equipment ownership   | Split: Aurora owns catalog, KinOS owns business logic/pricing               |
+| Document signing      | PandaDoc primary, SignNow fallback                                          |
+| Commission flow       | KinOS → Quickbase → Sequifi/CaptiveIQ (no direct push)                      |
+| Launch strategy       | Full cutover from Enerflo. New deals in KinOS, old deals finish in Enerflo. |
+| Pricing engine        | Typed TypeScript service with Big.js, not configurable function graph       |
+| v2 Installs tab       | Read-only visibility into Quickbase install progress for closers            |
 
 ---
 
 ## 11. Open Items / Future Work
 
-- [ ] Wire remaining 6 RepCard webhook events
+- [x] Wire remaining 6 RepCard webhook events (all 7 routes live)
 - [ ] Genability/UtilityAPI integration for utility rate lookup (Option B)
 - [ ] v2: Installs tab — read-only Quickbase install progress visibility
 - [ ] Data retention/archival strategy (year 2+)
