@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -27,11 +28,12 @@ interface NavItem {
   label: string
   href: string
   icon: React.ComponentType<{ className?: string }>
+  badge?: string
 }
 
 const mainNav: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Leads", href: "/leads", icon: Users },
+  { label: "Leads", href: "/leads", icon: Users, badge: "3" },
   { label: "Deals", href: "/deals", icon: Handshake },
   { label: "Calendar", href: "/calendar", icon: CalendarDays },
   { label: "Design Requests", href: "/design-requests", icon: PenTool },
@@ -61,26 +63,53 @@ function NavLink({
   return (
     <a
       href={item.href}
-      style={
-        active
-          ? { backgroundColor: "rgba(14,165,233,0.15)", color: "#0ea5e9" }
-          : undefined
-      }
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-        !active && "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
+        active
+          ? "text-white"
+          : "text-slate-400 hover:text-slate-200"
       )}
     >
-      <Icon
-        className="h-[18px] w-[18px] shrink-0"
-        style={active ? { color: "#0ea5e9" } : { color: "rgba(148,163,184,0.5)" }}
-      />
-      {!collapsed && <span>{item.label}</span>}
-      {active && !collapsed && (
+      {/* Active background glow */}
+      {active && (
         <div
-          className="ml-auto h-1.5 w-1.5 rounded-full"
-          style={{ backgroundColor: "#0ea5e9" }}
+          className="absolute inset-0 rounded-lg"
+          style={{
+            background: "linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(14,165,233,0.08) 100%)",
+            boxShadow: "inset 0 0 0 1px rgba(14,165,233,0.2), 0 0 20px -4px rgba(14,165,233,0.15)",
+          }}
         />
+      )}
+      {/* Active left accent bar */}
+      {active && (
+        <div
+          className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full"
+          style={{ background: "linear-gradient(180deg, #0ea5e9, #06b6d4)" }}
+        />
+      )}
+      {/* Hover background */}
+      {!active && (
+        <div className="absolute inset-0 rounded-lg bg-white/[0.03] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+      )}
+      <Icon
+        className={cn(
+          "relative h-[18px] w-[18px] shrink-0 transition-colors duration-200",
+          active ? "text-sky-400" : "text-slate-500 group-hover:text-slate-300"
+        )}
+      />
+      {!collapsed && (
+        <span className="relative">{item.label}</span>
+      )}
+      {!collapsed && item.badge && (
+        <span
+          className="relative ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold"
+          style={{
+            background: active ? "rgba(14,165,233,0.25)" : "rgba(148,163,184,0.12)",
+            color: active ? "#38bdf8" : "#94a3b8",
+          }}
+        >
+          {item.badge}
+        </span>
       )}
     </a>
   )
@@ -99,23 +128,37 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-slate-800 transition-all duration-300",
+        "flex h-full shrink-0 flex-col transition-all duration-300",
         collapsed ? "w-[68px]" : "w-[260px]"
       )}
-      style={{ backgroundColor: "#0f1520" }}
+      style={{
+        backgroundColor: "#0c111c",
+        borderRight: "1px solid rgba(148,163,184,0.08)",
+      }}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5">
+      <div
+        className="flex h-16 items-center gap-3 px-5"
+        style={{ borderBottom: "1px solid rgba(148,163,184,0.08)" }}
+      >
         <div
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: "#0ea5e9" }}
+          style={{
+            background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+            boxShadow: "0 2px 8px rgba(14,165,233,0.3)",
+          }}
         >
-          <span className="text-sm font-bold text-white">K</span>
+          <Zap className="h-4 w-4 text-white" strokeWidth={2.5} />
         </div>
         {!collapsed && (
-          <span className="text-lg font-semibold tracking-tight text-slate-100">
-            KinOS
-          </span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[15px] font-bold tracking-tight text-white">
+              KinOS
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-sky-400/60">
+              CRM
+            </span>
+          </div>
         )}
       </div>
 
@@ -124,11 +167,23 @@ export function AppSidebar() {
         <div className="px-3 pt-4 pb-2">
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-400"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition-all duration-200"
+            style={{
+              backgroundColor: "rgba(148,163,184,0.05)",
+              border: "1px solid rgba(148,163,184,0.08)",
+              color: "rgba(148,163,184,0.4)",
+            }}
           >
-            <Search className="h-4 w-4" />
+            <Search className="h-3.5 w-3.5" />
             <span>Search...</span>
-            <kbd className="ml-auto rounded border border-slate-800 bg-slate-950 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
+            <kbd
+              className="ml-auto rounded px-1.5 py-0.5 font-mono text-[10px]"
+              style={{
+                backgroundColor: "rgba(148,163,184,0.06)",
+                border: "1px solid rgba(148,163,184,0.1)",
+                color: "rgba(148,163,184,0.35)",
+              }}
+            >
               {"⌘K"}
             </kbd>
           </button>
@@ -138,7 +193,8 @@ export function AppSidebar() {
         <div className="flex justify-center pt-4 pb-2">
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-400"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-slate-400"
+            style={{ backgroundColor: "rgba(148,163,184,0.05)" }}
           >
             <Search className="h-4 w-4" />
           </button>
@@ -146,8 +202,8 @@ export function AppSidebar() {
       )}
 
       {/* Main Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-2" aria-label="Main navigation">
-        <div className="space-y-1">
+      <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Main navigation">
+        <div className="space-y-0.5">
           {mainNav.map((item) => (
             <NavLink
               key={item.href}
@@ -159,12 +215,19 @@ export function AppSidebar() {
         </div>
 
         {/* Admin Section */}
-        <div className="mt-6">
+        <div className="mt-8">
           {!collapsed ? (
             <button
               type="button"
               onClick={() => setAdminOpen(!adminOpen)}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-600 transition-colors hover:text-slate-500"
+              className="flex w-full items-center gap-2 px-3 py-1.5 transition-colors hover:text-slate-400"
+              style={{
+                fontSize: "10px",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "rgba(148,163,184,0.35)",
+              }}
             >
               <span>Admin</span>
               <ChevronDown
@@ -175,11 +238,14 @@ export function AppSidebar() {
               />
             </button>
           ) : (
-            <div className="mx-auto mb-2 h-px w-8 bg-slate-800" />
+            <div
+              className="mx-auto mb-2 h-px w-6 rounded-full"
+              style={{ backgroundColor: "rgba(148,163,184,0.1)" }}
+            />
           )}
 
           {(adminOpen || collapsed) && (
-            <div className="mt-1 space-y-1">
+            <div className="mt-1 space-y-0.5">
               {adminNav.map((item) => (
                 <NavLink
                   key={item.href}
@@ -194,28 +260,36 @@ export function AppSidebar() {
       </nav>
 
       {/* User Section */}
-      <div className="border-t border-slate-800 p-3">
+      <div className="p-3" style={{ borderTop: "1px solid rgba(148,163,184,0.08)" }}>
         <div
           className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2",
+            "flex items-center gap-3 rounded-lg px-3 py-2.5",
             collapsed && "justify-center px-0"
           )}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-200">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+            style={{
+              background: "linear-gradient(135deg, #1e293b, #334155)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+            }}
+          >
             AE
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-slate-200">Austin E.</p>
-              <p className="truncate text-xs text-slate-500">Closer</p>
+              <p className="truncate text-[13px] font-semibold text-slate-200">
+                Austin E.
+              </p>
+              <p className="truncate text-[11px] text-slate-500">Closer</p>
             </div>
           )}
           {!collapsed && (
             <button
               type="button"
-              className="rounded-md p-1 text-slate-600 transition-colors hover:text-slate-400"
+              className="rounded-md p-1.5 text-slate-600 transition-colors hover:text-slate-400"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
@@ -224,7 +298,8 @@ export function AppSidebar() {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="mt-2 flex w-full items-center justify-center rounded-lg py-1.5 text-slate-700 transition-colors hover:bg-slate-800 hover:text-slate-500"
+          className="mt-1 flex w-full items-center justify-center rounded-lg py-1.5 text-slate-700 transition-colors hover:text-slate-500"
+          style={{ backgroundColor: "transparent" }}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (

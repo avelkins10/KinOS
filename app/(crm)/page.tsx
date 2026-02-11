@@ -17,11 +17,11 @@ export default function DashboardPage() {
   const [view, setView] = useState<View>("closer")
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="animate-fade-in p-6 lg:p-8">
       {/* Page Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="page-header text-foreground">
             {view === "closer" ? "Good morning, Austin" : "Office Overview"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -30,12 +30,18 @@ export default function DashboardPage() {
               : "All offices performance and pipeline status."}
           </p>
         </div>
-        <div className="flex items-center rounded-lg border border-border bg-muted/50 p-1">
+        <div
+          className="flex items-center rounded-xl p-1"
+          style={{
+            backgroundColor: "hsl(216 18% 94%)",
+            border: "1px solid hsl(216 16% 90%)",
+          }}
+        >
           <button
             type="button"
             onClick={() => setView("closer")}
             className={cn(
-              "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
               view === "closer"
                 ? "bg-card text-card-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -48,7 +54,7 @@ export default function DashboardPage() {
             type="button"
             onClick={() => setView("manager")}
             className={cn(
-              "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
               view === "manager"
                 ? "bg-card text-card-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -63,13 +69,14 @@ export default function DashboardPage() {
       {view === "closer" ? (
         <>
           {/* Stats Row */}
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="stagger-children mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Deals This Month"
               value="8"
               change={14}
               changeLabel="vs last month"
               icon={<Handshake className="h-5 w-5" />}
+              accent="primary"
             />
             <StatCard
               label="Close Rate"
@@ -77,6 +84,7 @@ export default function DashboardPage() {
               change={3}
               changeLabel="vs last month"
               icon={<Target className="h-5 w-5" />}
+              accent="success"
             />
             <StatCard
               label="Avg Deal Size"
@@ -84,6 +92,7 @@ export default function DashboardPage() {
               change={-2}
               changeLabel="vs last month"
               icon={<DollarSign className="h-5 w-5" />}
+              accent="warning"
             />
             <StatCard
               label="Monthly Revenue"
@@ -91,6 +100,7 @@ export default function DashboardPage() {
               change={18}
               changeLabel="vs last month"
               icon={<TrendingUp className="h-5 w-5" />}
+              accent="accent"
             />
           </div>
 
@@ -109,13 +119,14 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* Manager Stats */}
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="stagger-children mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Total Active Deals"
               value="15"
               change={8}
               changeLabel="vs last month"
               icon={<Handshake className="h-5 w-5" />}
+              accent="primary"
             />
             <StatCard
               label="Office Close Rate"
@@ -123,6 +134,7 @@ export default function DashboardPage() {
               change={5}
               changeLabel="vs last month"
               icon={<Target className="h-5 w-5" />}
+              accent="success"
             />
             <StatCard
               label="Total Pipeline Value"
@@ -130,6 +142,7 @@ export default function DashboardPage() {
               change={22}
               changeLabel="vs last month"
               icon={<DollarSign className="h-5 w-5" />}
+              accent="warning"
             />
             <StatCard
               label="Active Reps"
@@ -137,6 +150,7 @@ export default function DashboardPage() {
               change={0}
               changeLabel="no change"
               icon={<Users className="h-5 w-5" />}
+              accent="accent"
             />
           </div>
 

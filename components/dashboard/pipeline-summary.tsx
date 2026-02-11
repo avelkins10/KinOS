@@ -43,37 +43,37 @@ export function PipelineSummary({ closerId }: { closerId?: string }) {
   const maxCount = Math.max(...stageCounts.map((s) => s.count), 1)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-card-foreground">Pipeline Summary</h3>
-        <span className="text-xs text-muted-foreground">
-          {totalDeals} active deals
+    <div className="card-premium p-6">
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="section-title">Pipeline Summary</h3>
+        <span className="text-xs font-medium text-muted-foreground">
+          {totalDeals} active
         </span>
       </div>
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {stageCounts.map(({ stage, label, count, value }) => (
           <div key={stage} className="group flex items-center gap-3">
-            <div className="w-[120px] shrink-0 truncate text-xs text-muted-foreground">
+            <div className="w-[110px] shrink-0 truncate text-xs font-medium text-muted-foreground">
               {label}
             </div>
             <div className="relative flex-1">
-              <div className="h-6 w-full overflow-hidden rounded bg-muted/50">
+              <div className="h-7 w-full overflow-hidden rounded-lg bg-muted/40">
                 <div
                   className={cn(
-                    "flex h-full items-center rounded transition-all duration-500 ease-out",
+                    "flex h-full items-center rounded-lg transition-all duration-700 ease-out",
                     stageColors[stage]
                   )}
-                  style={{ width: `${Math.max((count / maxCount) * 100, count > 0 ? 8 : 0)}%`, opacity: 0.8 }}
+                  style={{ width: `${Math.max((count / maxCount) * 100, count > 0 ? 10 : 0)}%`, opacity: 0.85 }}
                 >
                   {count > 0 && (
-                    <span className="px-2 text-[11px] font-semibold text-card">
+                    <span className="px-2.5 text-[11px] font-bold text-white">
                       {count}
                     </span>
                   )}
                 </div>
               </div>
             </div>
-            <div className="w-20 shrink-0 text-right text-xs font-medium text-muted-foreground">
+            <div className="w-16 shrink-0 text-right text-xs font-semibold text-muted-foreground">
               {value > 0 ? `$${(value / 1000).toFixed(0)}k` : "--"}
             </div>
           </div>

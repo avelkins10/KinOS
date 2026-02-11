@@ -1,5 +1,4 @@
 import React from "react"
-import Link from "next/link"
 import { DEALS, STAGE_LABELS, STAGE_COLORS } from "@/lib/mock-data"
 import { WorkflowStepper } from "@/components/deals/detail/workflow-stepper"
 import { DealTabs } from "@/components/deals/detail/deal-tabs"
@@ -14,6 +13,7 @@ import {
   Clock,
   MoreHorizontal,
   ExternalLink,
+  ChevronRight,
 } from "lucide-react"
 
 export default async function DealDetailPage({
@@ -32,48 +32,43 @@ export default async function DealDetailPage({
           <p className="mt-1 text-sm text-muted-foreground">
             The deal you are looking for does not exist.
           </p>
-          <Link
+          <a
             href="/deals"
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+            style={{ boxShadow: "0 1px 3px rgba(14,165,233,0.3)" }}
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Deals
-          </Link>
+          </a>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="animate-fade-in h-full overflow-y-auto">
       {/* Top Bar */}
       <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
-        <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <Link
+            <a
               href="/deals"
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
               aria-label="Back to deals"
             >
               <ArrowLeft className="h-4 w-4" />
-            </Link>
-            <div className="h-5 w-px bg-border" />
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-foreground">
-                {deal.customerName}
-              </h1>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                <span>
-                  {deal.address}, {deal.city}, {deal.state}
-                </span>
-              </div>
-            </div>
+            </a>
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-1 text-sm text-muted-foreground" aria-label="Breadcrumb">
+              <a href="/deals" className="hover:text-foreground transition-colors">Deals</a>
+              <ChevronRight className="h-3 w-3" />
+              <span className="font-semibold text-foreground">{deal.customerName}</span>
+            </nav>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-semibold",
+                "rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider",
                 STAGE_COLORS[deal.stage]
               )}
             >
@@ -81,7 +76,7 @@ export default async function DealDetailPage({
             </span>
             <button
               type="button"
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="More actions"
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -90,12 +85,21 @@ export default async function DealDetailPage({
         </div>
       </div>
 
+      {/* Customer Info Header */}
+      <div className="border-b border-border px-6 py-5">
+        <h1 className="page-header text-foreground">{deal.customerName}</h1>
+        <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+          <MapPin className="h-3.5 w-3.5" />
+          <span>{deal.address}, {deal.city}, {deal.state}</span>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <div className="grid gap-6 p-6 lg:grid-cols-[1fr_280px]">
+      <div className="grid gap-6 p-6 lg:grid-cols-[1fr_300px]">
         {/* Left: Info Header + Tabs */}
         <div className="min-w-0 space-y-6">
           {/* Quick Info Cards */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="stagger-children grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <InfoCard
               icon={<Phone className="h-4 w-4" />}
               label="Phone"
@@ -131,7 +135,7 @@ export default async function DealDetailPage({
           </div>
 
           {/* Tabbed Content */}
-          <div className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="card-premium overflow-hidden">
             <DealTabs deal={deal} />
           </div>
         </div>
@@ -141,8 +145,8 @@ export default async function DealDetailPage({
           <WorkflowStepper stage={deal.stage} />
 
           {/* Quick Actions */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="card-premium p-5">
+            <h3 className="section-title mb-4">
               Quick Actions
             </h3>
             <div className="space-y-2">
@@ -156,22 +160,22 @@ export default async function DealDetailPage({
 
           {/* Deal Value */}
           {deal.dealValue > 0 && (
-            <div className="rounded-xl border border-border bg-card p-5">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="card-premium-accent p-5">
+              <h3 className="section-title mb-3">
                 Deal Value
               </h3>
-              <p className="text-3xl font-bold tracking-tight text-foreground">
+              <p className="stat-value">
                 ${deal.dealValue.toLocaleString()}
               </p>
               {deal.monthlyPayment && (
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1.5 text-sm text-muted-foreground">
                   ${deal.monthlyPayment}/mo &middot; {deal.lenderProduct}
                 </p>
               )}
               {deal.lender && (
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2">
                   <div className="h-2 w-2 rounded-full bg-success" />
-                  <span className="text-xs font-medium text-foreground">
+                  <span className="text-xs font-semibold text-foreground">
                     {deal.lender}
                   </span>
                 </div>
@@ -198,13 +202,13 @@ function InfoCard({
   detail?: React.ReactNode
 }) {
   const content = (
-    <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/50">
+    <div className="card-premium flex items-start gap-3 p-3.5">
       <div className="mt-0.5 text-muted-foreground">{icon}</div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
-        <p className="mt-0.5 truncate text-sm font-medium text-foreground">
+        <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
           {value}
         </p>
         {detail}
@@ -237,11 +241,12 @@ function QuickAction({
     <button
       type="button"
       className={cn(
-        "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+        "flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
         primary
-          ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-          : "border border-border bg-transparent text-foreground hover:bg-muted/50"
+          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+          : "border border-border bg-transparent text-foreground hover:bg-muted/40"
       )}
+      style={primary ? { boxShadow: "0 1px 3px rgba(14,165,233,0.3)" } : undefined}
     >
       <span className="flex items-center gap-2">
         {label}

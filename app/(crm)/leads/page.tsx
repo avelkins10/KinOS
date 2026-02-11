@@ -20,20 +20,26 @@ export default function LeadsPage() {
   )
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="animate-fade-in p-6 lg:p-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Leads</h1>
+          <h1 className="page-header text-foreground">Leads</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {leads.length} active leads in early pipeline stages.
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+        <div
+          className="flex items-center rounded-xl p-1"
+          style={{
+            backgroundColor: "hsl(216 18% 94%)",
+            border: "1px solid hsl(216 16% 90%)",
+          }}
+        >
           <button
             type="button"
             onClick={() => setView("list")}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+              "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
               view === "list"
                 ? "bg-card text-card-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -46,7 +52,7 @@ export default function LeadsPage() {
             type="button"
             onClick={() => setView("grid")}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+              "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
               view === "grid"
                 ? "bg-card text-card-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -58,68 +64,68 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      <div className="relative mb-4 max-w-sm">
+      <div className="relative mb-6 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search leads..."
-          className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className="h-10 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
         />
       </div>
 
       {view === "list" ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <table className="w-full text-sm">
+        <div className="card-premium overflow-hidden">
+          <table className="table-premium">
             <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Location</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Stage</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Phone</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Setter</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Age</th>
+              <tr>
+                <th className="px-4">Name</th>
+                <th className="px-4">Location</th>
+                <th className="px-4">Stage</th>
+                <th className="px-4">Phone</th>
+                <th className="px-4">Setter</th>
+                <th className="px-4">Age</th>
               </tr>
             </thead>
             <tbody>
               {leads.map((lead) => (
-                <tr key={lead.id} className="border-b border-border last:border-0 transition-colors hover:bg-muted/20">
-                  <td className="px-4 py-3">
-                    <a href={`/deals/${lead.id}`} className="font-medium text-foreground hover:text-primary">
+                <tr key={lead.id}>
+                  <td>
+                    <a href={`/deals/${lead.id}`} className="font-semibold text-foreground hover:text-primary transition-colors">
                       {lead.customerName}
                     </a>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="text-muted-foreground">
                     {lead.city}, {lead.state}
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-semibold", STAGE_COLORS[lead.stage])}>
+                  <td>
+                    <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-bold", STAGE_COLORS[lead.stage])}>
                       {STAGE_LABELS[lead.stage]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{lead.phone}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{lead.setter.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{lead.daysInPipeline}d</td>
+                  <td className="text-muted-foreground font-mono text-xs">{lead.phone}</td>
+                  <td className="text-muted-foreground">{lead.setter.name}</td>
+                  <td className="text-muted-foreground font-medium">{lead.daysInPipeline}d</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {leads.length === 0 && (
-            <div className="py-12 text-center text-sm text-muted-foreground">No leads found.</div>
+            <div className="py-16 text-center text-sm text-muted-foreground">No leads found.</div>
           )}
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="stagger-children grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {leads.map((lead) => (
             <a
               key={lead.id}
               href={`/deals/${lead.id}`}
-              className="group rounded-xl border border-border bg-card p-5 transition-all hover:shadow-md hover:border-primary/30"
+              className="card-premium group p-5"
             >
               <div className="flex items-start justify-between">
                 <h3 className="text-sm font-semibold text-foreground">{lead.customerName}</h3>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </div>
 
               <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -128,7 +134,7 @@ export default function LeadsPage() {
               </div>
 
               <div className="mt-3 flex items-center gap-3">
-                <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-semibold", STAGE_COLORS[lead.stage])}>
+                <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-bold", STAGE_COLORS[lead.stage])}>
                   {STAGE_LABELS[lead.stage]}
                 </span>
                 <span className="text-xs text-muted-foreground">{lead.daysInPipeline}d ago</span>

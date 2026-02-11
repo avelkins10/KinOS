@@ -24,40 +24,39 @@ export function ActivityFeed({ limit = 6 }: { limit?: number }) {
   const items = RECENT_ACTIVITY.slice(0, limit)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-card-foreground">Recent Activity</h3>
-        <button type="button" className="text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+    <div className="card-premium p-6">
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="section-title">Recent Activity</h3>
+        <button type="button" className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors">
           View all
         </button>
       </div>
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {items.map((item, idx) => {
           const config = typeConfig[item.type]
           const Icon = config.icon
           return (
             <div
               key={item.id}
-              className="group flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/50"
-              style={{ animationDelay: `${idx * 50}ms` }}
+              className="group flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/30"
             >
               <div
                 className={cn(
-                  "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                  "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
                   config.color
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-card-foreground">{item.description}</p>
+                <p className="text-[13px] font-medium text-card-foreground">{item.description}</p>
                 {item.detail && (
                   <p className="mt-0.5 text-xs text-muted-foreground">{item.detail}</p>
                 )}
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground/60">{item.user}</span>
-                  <span className="text-[11px] text-muted-foreground/40">{"·"}</span>
-                  <span className="text-[11px] text-muted-foreground/60">{item.timestamp}</span>
+                  <span className="text-[11px] font-medium text-muted-foreground/60">{item.user}</span>
+                  <span className="text-[11px] text-muted-foreground/30">{"·"}</span>
+                  <span className="text-[11px] text-muted-foreground/50">{item.timestamp}</span>
                 </div>
               </div>
             </div>

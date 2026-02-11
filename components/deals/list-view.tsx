@@ -1,10 +1,7 @@
 "use client"
 
-import React from "react"
-
 import { useState } from "react"
-import Link from "next/link"
-import type { Deal, DealStage } from "@/lib/mock-data"
+import type { Deal } from "@/lib/mock-data"
 import { STAGE_LABELS, STAGE_COLORS } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { ArrowUpDown, Zap } from "lucide-react"
@@ -75,13 +72,14 @@ export function ListView({ deals }: { deals: Deal[] }) {
   )
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="card-premium overflow-hidden">
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 border-b border-border bg-primary/5 px-4 py-2">
-          <span className="text-xs font-medium text-primary">{selected.size} selected</span>
+        <div className="flex items-center gap-3 border-b border-border px-4 py-2.5" style={{ backgroundColor: "rgba(14,165,233,0.04)" }}>
+          <span className="text-xs font-semibold text-primary">{selected.size} selected</span>
           <button
             type="button"
-            className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+            style={{ backgroundColor: "rgba(14,165,233,0.08)" }}
             onClick={() => setSelected(new Set())}
           >
             Clear
@@ -89,9 +87,9 @@ export function ListView({ deals }: { deals: Deal[] }) {
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="table-premium">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
+            <tr>
               <th className="w-10 px-4 py-3">
                 <input
                   type="checkbox"
@@ -100,15 +98,15 @@ export function ListView({ deals }: { deals: Deal[] }) {
                   className="h-3.5 w-3.5 rounded border-border accent-primary"
                 />
               </th>
-              <th className="px-4 py-3 text-left"><SortHeader field="customerName">Customer</SortHeader></th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Address</th>
-              <th className="px-4 py-3 text-left"><SortHeader field="stage">Stage</SortHeader></th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Closer</th>
-              <th className="px-4 py-3 text-right"><SortHeader field="systemSize">System</SortHeader></th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Lender</th>
-              <th className="px-4 py-3 text-right"><SortHeader field="dealValue">Value</SortHeader></th>
-              <th className="px-4 py-3 text-right"><SortHeader field="daysInPipeline">Age</SortHeader></th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Progress</th>
+              <th className="px-4"><SortHeader field="customerName">Customer</SortHeader></th>
+              <th className="px-4">Address</th>
+              <th className="px-4"><SortHeader field="stage">Stage</SortHeader></th>
+              <th className="px-4">Closer</th>
+              <th className="px-4 text-right"><SortHeader field="systemSize">System</SortHeader></th>
+              <th className="px-4">Lender</th>
+              <th className="px-4 text-right"><SortHeader field="dealValue">Value</SortHeader></th>
+              <th className="px-4 text-right"><SortHeader field="daysInPipeline">Age</SortHeader></th>
+              <th className="px-4">Progress</th>
             </tr>
           </thead>
           <tbody>
@@ -128,13 +126,13 @@ export function ListView({ deals }: { deals: Deal[] }) {
                     className="h-3.5 w-3.5 rounded border-border accent-primary"
                   />
                 </td>
-                <td className="px-4 py-3">
-                  <Link
+                <td className="px-4 py-3.5">
+                  <a
                     href={`/deals/${deal.id}`}
-                    className="text-sm font-medium text-card-foreground hover:text-primary transition-colors"
+                    className="text-sm font-semibold text-card-foreground hover:text-primary transition-colors"
                   >
                     {deal.customerName}
-                  </Link>
+                  </a>
                 </td>
                 <td className="px-4 py-3">
                   <span className="text-sm text-muted-foreground truncate max-w-[200px] block">

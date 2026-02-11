@@ -57,11 +57,11 @@ export default function DealsPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Top Bar */}
-      <div className="shrink-0 border-b border-border bg-card/50 px-6 py-4">
+      <div className="shrink-0 border-b border-border bg-card/80 px-6 py-5 backdrop-blur-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Deal Pipeline</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <h1 className="page-header text-foreground">Deal Pipeline</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               {filteredDeals.length} deals {"·"} $
               {(filteredDeals.reduce((s, d) => s + d.dealValue, 0) / 1000).toFixed(0)}k
               total value
@@ -76,7 +76,7 @@ export default function DealsPage() {
                 placeholder="Search deals..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-[220px] rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                className="h-9 w-[220px] rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               />
               <kbd className="absolute right-2 top-1/2 -translate-y-1/2 rounded border border-border bg-muted px-1 py-0.5 font-mono text-[9px] text-muted-foreground/40">
                 {"⌘K"}
@@ -136,7 +136,8 @@ export default function DealsPage() {
             {/* New Deal */}
             <button
               type="button"
-              className="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+              className="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:bg-primary/90"
+              style={{ boxShadow: "0 1px 3px rgba(14,165,233,0.3), 0 1px 2px rgba(14,165,233,0.2)" }}
             >
               <Plus className="h-4 w-4" />
               New Deal
