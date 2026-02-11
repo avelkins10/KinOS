@@ -74,12 +74,12 @@ export async function getDashboardStats(
     const dealsThisMonth = list.filter(
       (d) => (d.created_at ?? "") >= startOfMonth,
     );
-    const ptoDeals = list.filter((d) => d.stage === "pto");
+    const closedWonDeals = list.filter((d) => d.stage === "intake_approved");
     const totalValue = list.reduce(
       (s, d) => s + (Number(d.gross_price) || 0),
       0,
     );
-    const monthlyRevenue = ptoDeals
+    const monthlyRevenue = closedWonDeals
       .filter((d) => (d.created_at ?? "") >= startOfMonth)
       .reduce((s, d) => s + (Number(d.gross_price) || 0), 0);
 
@@ -152,7 +152,9 @@ export async function getDashboardStats(
     const stats: DashboardStats = {
       dealsThisMonth: dealsThisMonth.length,
       closeRate:
-        list.length > 0 ? Math.round((ptoDeals.length / list.length) * 100) : 0,
+        list.length > 0
+          ? Math.round((closedWonDeals.length / list.length) * 100)
+          : 0,
       avgDealSize: list.length > 0 ? Math.round(totalValue / list.length) : 0,
       monthlyRevenue,
       pipelineByStage,

@@ -15,10 +15,7 @@ interface DocItem {
 
 function getMockDocs(deal: DealForUI): DocItem[] {
   const isSigned =
-    deal.stage === "contracting" ||
-    deal.stage === "install_scheduled" ||
-    deal.stage === "install_complete" ||
-    deal.stage === "pto";
+    deal.stage === "contract_sent" || deal.stage === "contract_signed";
   if (!isSigned) return [];
 
   if (isSigned) {

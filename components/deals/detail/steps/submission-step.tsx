@@ -23,15 +23,27 @@ function getGates(deal: DealForUI): Gate[] {
   const hasDesign = !!deal.systemSize;
   const hasLender = !!deal.lender;
   const hasValue = deal.dealValue > 0;
-  const isSigned = [
-    "contracting",
-    "install_scheduled",
-    "install_complete",
-    "pto",
+  const isSigned = ["contract_sent", "contract_signed"].includes(deal.stage);
+  const isSubmitted = [
+    "submission_ready",
+    "submitted",
+    "intake_approved",
+    "intake_rejected",
   ].includes(deal.stage);
-  const isSubmitted = ["install_complete", "inspection", "pto"].includes(
-    deal.stage,
-  );
+
+  const financingGatePassed =
+    hasLender &&
+    [
+      "financing_approved",
+      "stips_pending",
+      "stips_cleared",
+      "contract_sent",
+      "contract_signed",
+      "submission_ready",
+      "submitted",
+      "intake_approved",
+      "intake_rejected",
+    ].includes(deal.stage);
 
   return [
     {
@@ -52,8 +64,7 @@ function getGates(deal: DealForUI): Gate[] {
       id: "g3",
       label: "Financing approved",
       type: "auto",
-      passed:
-        hasLender && (deal.stage === "financing" || isSigned || isSubmitted),
+      passed: financingGatePassed,
       detail: hasLender ? (deal.lender ?? undefined) : undefined,
     },
     {

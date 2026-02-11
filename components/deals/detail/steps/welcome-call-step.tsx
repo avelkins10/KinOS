@@ -13,11 +13,12 @@ interface ChecklistItem {
 
 function getChecklist(deal: DealForUI): ChecklistItem[] {
   const isLate = [
-    "contracting",
-    "install_scheduled",
-    "install_complete",
-    "inspection",
-    "pto",
+    "contract_sent",
+    "contract_signed",
+    "submission_ready",
+    "submitted",
+    "intake_approved",
+    "intake_rejected",
   ].includes(deal.stage);
   return [
     {
@@ -63,9 +64,13 @@ function getChecklist(deal: DealForUI): ChecklistItem[] {
       id: "wc7",
       label: "Schedule site survey",
       description: "Coordinate a date for the site survey with the customer.",
-      completed: ["install_scheduled", "install_complete", "pto"].includes(
-        deal.stage,
-      ),
+      completed: [
+        "contract_signed",
+        "submission_ready",
+        "submitted",
+        "intake_approved",
+        "intake_rejected",
+      ].includes(deal.stage),
     },
   ];
 }

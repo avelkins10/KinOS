@@ -17,16 +17,12 @@ function getGates(deal: DealForUI): Gate[] {
   const hasDesign = !!deal.systemSize;
   const hasLender = !!deal.lender;
   const hasValue = deal.dealValue > 0;
-  const isSigned = [
-    "contracting",
-    "install_scheduled",
-    "install_complete",
-    "inspection",
-    "pto",
+  const isSigned = ["contract_sent", "contract_signed"].includes(deal.stage);
+  const isSubmitted = [
+    "submitted",
+    "intake_approved",
+    "intake_rejected",
   ].includes(deal.stage);
-  const isSubmitted = ["install_complete", "inspection", "pto"].includes(
-    deal.stage,
-  );
 
   return [
     {
@@ -93,7 +89,7 @@ function getGates(deal: DealForUI): Gate[] {
 
 export function SubmissionTab({ deal }: { deal: DealForUI }) {
   const [submitted, setSubmitted] = useState(
-    ["install_complete", "inspection", "pto"].includes(deal.stage),
+    ["submitted", "intake_approved", "intake_rejected"].includes(deal.stage),
   );
   const gates = getGates(deal);
   const passedCount = gates.filter((g) => g.passed).length;

@@ -25,16 +25,12 @@ interface ReviewItem {
 function getReviewItems(deal: DealForUI): ReviewItem[] {
   const hasDesign = !!deal.systemSize;
   const hasLender = !!deal.lender;
-  const isSigned = [
-    "contracting",
-    "install_scheduled",
-    "install_complete",
-    "inspection",
-    "pto",
+  const isSigned = ["contract_sent", "contract_signed"].includes(deal.stage);
+  const isSubmitted = [
+    "submitted",
+    "intake_approved",
+    "intake_rejected",
   ].includes(deal.stage);
-  const isSubmitted = ["install_complete", "inspection", "pto"].includes(
-    deal.stage,
-  );
   return [
     {
       label: "System Design",
@@ -84,7 +80,7 @@ export function ProjectSubmissionStep({
   dealDetail?: DealDetail | null;
 }) {
   const [submitted, setSubmitted] = useState(
-    ["install_complete", "inspection", "pto"].includes(deal.stage),
+    ["submitted", "intake_approved", "intake_rejected"].includes(deal.stage),
   );
   const items = getReviewItems(deal);
   const allOk = items.every((i) => i.ok);

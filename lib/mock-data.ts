@@ -69,8 +69,8 @@ export interface ActivityItem {
     | "stage_change"
     | "note"
     | "document"
-    | "proposal"
-    | "financing"
+    | "proposal_sent"
+    | "financing_applied"
     | "system";
   description: string;
   detail?: string;
@@ -214,7 +214,7 @@ export const DEALS: Deal[] = [
     address: "8832 N 19th Ave",
     city: "Phoenix",
     state: "AZ",
-    stage: "proposal",
+    stage: "proposal_sent",
     closer: REPS[0],
     setter: REPS[3],
     systemSize: 12.4,
@@ -241,7 +241,7 @@ export const DEALS: Deal[] = [
     address: "2209 W Baseline Rd",
     city: "Tempe",
     state: "AZ",
-    stage: "financing",
+    stage: "financing_applied",
     closer: REPS[0],
     setter: REPS[3],
     systemSize: 8.54,
@@ -295,7 +295,7 @@ export const DEALS: Deal[] = [
     address: "3847 Gulf Shore Blvd N",
     city: "Naples",
     state: "FL",
-    stage: "financing",
+    stage: "financing_applied",
     closer: REPS[1],
     setter: REPS[6],
     systemSize: 14.2,
@@ -322,7 +322,7 @@ export const DEALS: Deal[] = [
     address: "9912 Tamiami Trail",
     city: "Fort Myers",
     state: "FL",
-    stage: "contracting",
+    stage: "contract_sent",
     closer: REPS[1],
     setter: REPS[6],
     systemSize: 11.8,
@@ -430,7 +430,7 @@ export const DEALS: Deal[] = [
     address: "6639 E Camelback Rd",
     city: "Scottsdale",
     state: "AZ",
-    stage: "pto",
+    stage: "intake_approved",
     closer: REPS[0],
     setter: REPS[3],
     systemSize: 9.88,
@@ -457,7 +457,7 @@ export const DEALS: Deal[] = [
     address: "1890 Estero Blvd",
     city: "Fort Myers Beach",
     state: "FL",
-    stage: "proposal",
+    stage: "proposal_sent",
     closer: REPS[1],
     setter: REPS[6],
     systemSize: 13.5,
@@ -511,7 +511,7 @@ export const DEALS: Deal[] = [
     address: "8901 Bonita Beach Rd",
     city: "Bonita Springs",
     state: "FL",
-    stage: "financing",
+    stage: "financing_applied",
     closer: REPS[2],
     setter: REPS[6],
     systemSize: 10.2,
@@ -565,7 +565,7 @@ export const DEALS: Deal[] = [
     address: "2100 Palm Beach Lakes Blvd",
     city: "West Palm Beach",
     state: "FL",
-    stage: "contracting",
+    stage: "contract_sent",
     closer: REPS[2],
     setter: REPS[6],
     systemSize: 16.0,
@@ -630,7 +630,7 @@ export const RECENT_ACTIVITY: ActivityItem[] = [
   },
   {
     id: "act2",
-    type: "financing",
+    type: "financing_applied",
     description: "Financing application submitted",
     detail: "Mosaic - 20yr Loan",
     timestamp: "3 hours ago",
@@ -639,7 +639,7 @@ export const RECENT_ACTIVITY: ActivityItem[] = [
   },
   {
     id: "act3",
-    type: "proposal",
+    type: "proposal_sent",
     description: "Proposal finalized",
     detail: "LightReach 25yr PPA - $178/mo",
     timestamp: "5 hours ago",
@@ -673,7 +673,7 @@ export const RECENT_ACTIVITY: ActivityItem[] = [
   },
   {
     id: "act7",
-    type: "financing",
+    type: "financing_applied",
     description: "Financing approved - stips pending",
     detail: "Climate First Bank HELOC",
     timestamp: "Yesterday",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Handshake,
   Target,
@@ -8,7 +9,9 @@ import {
   TrendingUp,
   Users,
   Building2,
+  Clock,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PipelineSummary } from "@/components/dashboard/pipeline-summary";
 import { AppointmentsList } from "@/components/dashboard/appointments-list";
@@ -18,17 +21,27 @@ import { RepLeaderboard } from "@/components/dashboard/leaderboard";
 import { PipelineChart } from "@/components/dashboard/pipeline-chart";
 import { cn } from "@/lib/utils";
 import type { DashboardStats } from "@/lib/actions/dashboard";
+import type { AppointmentWithRelations } from "@/lib/actions/appointments";
 
 type View = "closer" | "manager";
 
 interface DashboardClientProps {
   statsAll: DashboardStats | null;
   statsCloser: DashboardStats | null;
+  todaysAppointments?: AppointmentWithRelations[];
+  appointmentOutcomes?: {
+    completed: number;
+    no_show: number;
+    rescheduled: number;
+    cancelled: number;
+  } | null;
 }
 
 export function DashboardClient({
   statsAll,
   statsCloser,
+  todaysAppointments = [],
+  appointmentOutcomes = null,
 }: DashboardClientProps) {
   const [view, setView] = useState<View>("closer");
 
@@ -37,6 +50,16 @@ export function DashboardClient({
   const totalDealsAll = pipelineAll.reduce((s, p) => s + p.count, 0) ?? 0;
   const totalValueAll = pipelineAll.reduce((s, p) => s + p.totalValue, 0) ?? 0;
   const totalDealsCloser = pipelineCloser.reduce((s, p) => s + p.count, 0) ?? 0;
+
+  const now = new Date();
+  const sortedToday = [...todaysAppointments].sort(
+    (a, b) =>
+      new Date(a.scheduled_start).getTime() -
+      new Date(b.scheduled_start).getTime(),
+  );
+  const nextAppointment =
+    sortedToday.find((a) => new Date(a.scheduled_start) >= now) ??
+    sortedToday[0];
 
   return (
     <div className="animate-fade-in p-6 lg:p-8">
@@ -99,6 +122,14 @@ export function DashboardClient({
               accent="primary"
             />
             <StatCard
+              label="Today's Appointments"
+              value={String(todaysAppointments.length)}
+              change={0}
+              changeLabel=""
+              icon={<Target className="h-5 w-5" />}
+              accent="accent"
+            />
+            <StatCard
               label="Close Rate"
               value={`${statsCloser?.closeRate ?? 0}%`}
               change={3}
@@ -125,7 +156,44 @@ export function DashboardClient({
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
-              <AppointmentsList />
+              {nextAppointment && (
+                <div className="card-premium flex items-center gap-4 rounded-xl border p-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Clock className="h-7 w-7" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Next appointment
+                    </p>
+                    <p className="mt-0.5 font-semibold text-card-foreground">
+                      {new Date(
+                        nextAppointment.scheduled_start,
+                      ).toLocaleTimeString(undefined, {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}{" "}
+                      —{" "}
+                      {nextAppointment.contact
+                        ? `${nextAppointment.contact.first_name ?? ""} ${nextAppointment.contact.last_name ?? ""}`.trim() ||
+                          "—"
+                        : "—"}
+                    </p>
+                    {nextAppointment.location && (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {nextAppointment.location}
+                      </p>
+                    )}
+                  </div>
+                  {nextAppointment.deal?.id && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/deals/${nextAppointment.deal!.id}`}>
+                        View deal
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              )}
+              <AppointmentsList appointments={todaysAppointments} />
               <PipelineSummary
                 pipelineByStage={pipelineCloser}
                 totalDeals={totalDealsCloser}
@@ -147,6 +215,14 @@ export function DashboardClient({
               changeLabel="vs last month"
               icon={<Handshake className="h-5 w-5" />}
               accent="primary"
+            />
+            <StatCard
+              label="Today's Appointments"
+              value={String(todaysAppointments.length)}
+              change={0}
+              changeLabel=""
+              icon={<Target className="h-5 w-5" />}
+              accent="accent"
             />
             <StatCard
               label="Office Close Rate"
@@ -183,6 +259,39 @@ export function DashboardClient({
               <RepLeaderboard />
             </div>
             <div className="space-y-6">
+              {appointmentOutcomes && (
+                <div className="card-premium rounded-xl border p-4">
+                  <h3 className="section-title mb-3">
+                    Appointment outcomes (7 days)
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-lg bg-emerald-50 p-2 text-emerald-800">
+                      <span className="font-semibold">
+                        {appointmentOutcomes.completed}
+                      </span>{" "}
+                      completed
+                    </div>
+                    <div className="rounded-lg bg-red-50 p-2 text-red-800">
+                      <span className="font-semibold">
+                        {appointmentOutcomes.no_show}
+                      </span>{" "}
+                      no-show
+                    </div>
+                    <div className="rounded-lg bg-amber-50 p-2 text-amber-800">
+                      <span className="font-semibold">
+                        {appointmentOutcomes.rescheduled}
+                      </span>{" "}
+                      rescheduled
+                    </div>
+                    <div className="rounded-lg bg-slate-100 p-2 text-slate-700">
+                      <span className="font-semibold">
+                        {appointmentOutcomes.cancelled}
+                      </span>{" "}
+                      cancelled
+                    </div>
+                  </div>
+                </div>
+              )}
               <PipelineSummary
                 pipelineByStage={pipelineAll}
                 totalDeals={totalDealsAll}

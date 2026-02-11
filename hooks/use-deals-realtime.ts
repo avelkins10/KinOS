@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { DealFilters } from "@/lib/actions/deals";
 import type { DealWithRelations } from "@/lib/actions/deals";
+import type { DealStage } from "@/lib/constants/pipeline";
 
 function rowMatchesFilters(
   row: Record<string, unknown>,
@@ -14,7 +15,7 @@ function rowMatchesFilters(
   if (
     filters.stages?.length &&
     typeof row.stage === "string" &&
-    !filters.stages.includes(row.stage)
+    !filters.stages.includes(row.stage as DealStage)
   )
     return false;
   return true;

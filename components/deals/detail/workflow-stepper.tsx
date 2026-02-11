@@ -31,7 +31,7 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
   { key: "financing", label: "Financing", icon: CreditCard },
   { key: "contracting", label: "Contracting", icon: PenTool },
   { key: "welcome_call", label: "Welcome Call", icon: PhoneCall },
-  { key: "pre_intake", label: "Pre-Intake Checklist", icon: ClipboardCheck },
+  { key: "pre_intake", label: "Submission Ready", icon: ClipboardCheck },
   { key: "project_submission", label: "Project Submission", icon: Rocket },
 ];
 
@@ -39,28 +39,30 @@ export function getStepIndexFromStage(stage: DealStage): number {
   switch (stage) {
     case "new_lead":
     case "appointment_set":
-    case "appointment_completed":
+    case "appointment_sat":
     case "cancelled":
-    case "on_hold":
+    case "lost":
       return 0;
     case "design_requested":
-    case "design_in_progress":
-      return 2;
     case "design_complete":
       return 2;
-    case "proposal":
+    case "proposal_sent":
+    case "proposal_accepted":
       return 3;
-    case "financing":
+    case "financing_applied":
+    case "financing_approved":
+    case "stips_pending":
+    case "stips_cleared":
       return 4;
-    case "contracting":
+    case "contract_sent":
       return 5;
-    case "pre_intake":
+    case "contract_signed":
+      return 6;
+    case "submission_ready":
       return 7;
-    case "install_scheduled":
-    case "install_in_progress":
-    case "install_complete":
-    case "inspection":
-    case "pto":
+    case "submitted":
+    case "intake_approved":
+    case "intake_rejected":
       return 8;
     default:
       return 0;

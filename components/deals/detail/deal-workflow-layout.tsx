@@ -15,7 +15,7 @@ import { ProposalStep } from "./steps/proposal-step";
 import { FinancingStep } from "./steps/financing-step";
 import { ContractingStep } from "./steps/contracting-step";
 import { WelcomeCallStep } from "./steps/welcome-call-step";
-import { PreIntakeStep } from "./steps/pre-intake-step";
+import { PreIntakeStep } from "./steps/submission-step";
 import { ProjectSubmissionStep } from "./steps/project-submission-step";
 import { DollarSign } from "lucide-react";
 

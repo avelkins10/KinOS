@@ -14,33 +14,14 @@ import {
 } from "@dnd-kit/core";
 import {
   STAGE_LABELS,
-  STAGE_ORDER,
+  KANBAN_STAGES,
+  STAGE_DOT_COLORS,
   type DealStage,
 } from "@/lib/constants/pipeline";
 import type { DealForUI } from "@/lib/deals-mappers";
 import { DealCard } from "./deal-card";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const stageDotColors: Record<DealStage, string> = {
-  new_lead: "bg-chart-4",
-  appointment_set: "bg-primary",
-  appointment_completed: "bg-primary",
-  design_requested: "bg-chart-1",
-  design_in_progress: "bg-chart-1",
-  design_complete: "bg-chart-2",
-  proposal: "bg-chart-1",
-  financing: "bg-warning",
-  contracting: "bg-chart-2",
-  pre_intake: "bg-accent",
-  install_scheduled: "bg-chart-2",
-  install_in_progress: "bg-chart-2",
-  install_complete: "bg-success",
-  inspection: "bg-success",
-  pto: "bg-success",
-  cancelled: "bg-destructive",
-  on_hold: "bg-muted",
-};
 
 function DraggableDealCard({ deal }: { deal: DealForUI }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -139,7 +120,7 @@ export function KanbanView({ deals }: { deals: DealForUI[] }) {
       onDragEnd={handleDragEnd}
     >
       <div className="flex gap-3 overflow-x-auto pb-4">
-        {STAGE_ORDER.map((stage) => {
+        {KANBAN_STAGES.map((stage) => {
           const stageDeals = optimisticDeals.filter((d) => d.stage === stage);
           const totalValue = stageDeals.reduce((s, d) => s + d.dealValue, 0);
 
@@ -151,7 +132,10 @@ export function KanbanView({ deals }: { deals: DealForUI[] }) {
             >
               <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
                 <div
-                  className={cn("h-2 w-2 rounded-full", stageDotColors[stage])}
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    STAGE_DOT_COLORS[stage],
+                  )}
                 />
                 <span className="text-xs font-semibold text-foreground">
                   {STAGE_LABELS[stage]}
