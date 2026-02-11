@@ -62,6 +62,7 @@ function NavLink({
   return (
     <Link
       href={item.href}
+      onClick={() => console.log("[v0] NavLink clicked:", item.label, item.href)}
       style={
         active
           ? { backgroundColor: "rgba(14,165,233,0.15)", color: "#0ea5e9" }
@@ -91,6 +92,7 @@ export function AppSidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
+  console.log("[v0] AppSidebar pathname:", pathname)
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/"
