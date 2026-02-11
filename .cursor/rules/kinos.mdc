@@ -1,0 +1,71 @@
+---
+description: KinOS Solar CRM project rules and context
+globs:
+alwaysApply: true
+---
+
+# KinOS — Solar CRM for KIN Home
+
+## What This Project Is
+KinOS is an internal CRM replacing Enerflo for KIN Home's solar sales operations. Built with Next.js 14 (App Router), Supabase (Postgres + Auth + RLS), and deployed on Vercel.
+
+## Critical Documentation
+ALWAYS read these files before making architectural decisions:
+- `/docs/PROJECT-KNOWLEDGE.md` — Master knowledge base (schema, data flows, APIs, decisions)
+- `/docs/kinos-migration-v1.sql` — Complete database schema (43 tables, triggers, RLS policies)
+- `/docs/blueprint.md` — Full system architecture
+
+## Tech Stack
+- **Framework:** Next.js 14 with App Router (NOT Pages Router)
+- **Database:** Supabase (Postgres) with Row Level Security
+- **Auth:** Supabase Auth (email/password)
+- **Styling:** Tailwind CSS + shadcn/ui components
+- **Language:** TypeScript (strict mode)
+- **Package Manager:** pnpm
+- **Deployment:** Vercel (auto-deploys from main branch)
+
+## Database Access Patterns
+- **Browser/Client components:** Use `lib/supabase/client.ts` (anon key, respects RLS)
+- **Server components/actions:** Use `lib/supabase/server.ts` (cookie-based auth, respects RLS)
+- **Webhooks/API routes:** Use `lib/supabase/admin.ts` (service role, bypasses RLS)
+- NEVER use the service role client in client components
+- NEVER expose the service role key to the browser
+
+## Pipeline Stages (in order)
+```
+new_lead → design_requested → design_complete → proposal → financing → contracting → pre_intake → submitted → intake_approved
+```
+
+## Deal Workflow Stepper (inside deal detail page)
+1. Deal Assignment — confirm setter, closer, office, customer info
+2. Consumption — monthly bill, annual kWh, utility company
+3. Designs — request Aurora design, view results
+4. Proposal — build pricing from design (PPW, adders, lender selection)
+5. Financing — submit app, track status, manage stips
+6. Contracting — generate/send contracts, track signing
+7. Welcome Call — lender post-sale requirements
+8. Pre-Intake Checklist — all gates before submission
+9. Project Submission — review and submit to Quickbase
+
+## Key Architecture Rules
+- All data is company-isolated via RLS policies using `company_id`
+- Soft deletes everywhere (`deleted_at` column, never hard delete)
+- Every table has `created_at`, `updated_at`, `created_by`, `updated_by`
+- Deal stage transitions are auto-logged by Postgres trigger to `deal_stage_history`
+- Contact field changes are auto-logged by Postgres trigger to `contact_change_history`
+- Deal numbers auto-generate as `KIN-{YEAR}-{SEQ}` via Postgres trigger
+
+## Code Conventions
+- Server actions go in `lib/actions/` (e.g., `lib/actions/deals.ts`)
+- API routes go in `app/api/` (webhooks only, not for CRUD)
+- Use server components by default, `"use client"` only when needed
+- Form submissions use server actions, NOT API routes
+- Error handling: always try/catch Supabase calls, return typed results
+- No `any` types — use generated Supabase types from `lib/supabase/database.types.ts`
+
+## Integrations (DO NOT build yet unless specifically asked)
+- **RepCard:** Inbound webhook for lead creation (POST to `/api/webhooks/repcard`)
+- **Aurora Solar:** Design requests and webhook callbacks
+- **Lender APIs:** GoodLeap, Mosaic, Sunlight, LightReach, etc.
+- **PandaDoc/SignNow:** Contract generation and e-signature
+- **Quickbase:** Final project submission
