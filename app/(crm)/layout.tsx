@@ -1,6 +1,7 @@
+import type { ReactNode } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 
-export default function CRMLayout({ children }: { children: React.ReactNode }) {
+export default function CRMLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen bg-background">
       <AppSidebar />
