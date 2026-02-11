@@ -1,8 +1,4 @@
-"use client"
-
 import React from "react"
-
-import { use } from "react"
 import Link from "next/link"
 import { DEALS, STAGE_LABELS, STAGE_COLORS } from "@/lib/mock-data"
 import { WorkflowStepper } from "@/components/deals/detail/workflow-stepper"
@@ -20,12 +16,12 @@ import {
   ExternalLink,
 } from "lucide-react"
 
-export default function DealDetailPage({
+export default async function DealDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { id } = use(params)
+  const { id } = await params
   const deal = DEALS.find((d) => d.id === id)
 
   if (!deal) {
