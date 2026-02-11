@@ -31,8 +31,8 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Deals", href: "/deals", icon: Handshake },
   { label: "Leads", href: "/leads", icon: Users },
+  { label: "Deals", href: "/deals", icon: Handshake },
   { label: "Calendar", href: "/calendar", icon: CalendarDays },
   { label: "Design Requests", href: "/design-requests", icon: PenTool },
   { label: "Reports", href: "/reports", icon: BarChart3 },

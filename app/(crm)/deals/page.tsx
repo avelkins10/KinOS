@@ -17,7 +17,7 @@ import {
 type ViewMode = "kanban" | "list"
 
 export default function DealsPage() {
-  const [view, setView] = useState<ViewMode>("kanban")
+  const [view, setView] = useState<ViewMode>("list")
   const [search, setSearch] = useState("")
   const [showFilters, setShowFilters] = useState(false)
   const [filterOffice, setFilterOffice] = useState("")
