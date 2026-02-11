@@ -1,8 +1,9 @@
 "use client"
 
+import { ScrollArea } from "@/components/ui/scroll-area"
+
 import { STAGE_LABELS, type Deal, type DealStage } from "@/lib/mock-data"
 import { DealCard } from "./deal-card"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 const stageOrder: DealStage[] = [
   "new_lead",
@@ -59,7 +60,7 @@ export function KanbanView({ deals }: { deals: Deal[] }) {
               </div>
             )}
             {/* Cards */}
-            <ScrollArea className="flex-1 p-2">
+            <div className="flex-1 overflow-y-auto p-2">
               <div className="space-y-2">
                 {stageDeals.length === 0 ? (
                   <div className="flex items-center justify-center py-8">
@@ -71,7 +72,7 @@ export function KanbanView({ deals }: { deals: Deal[] }) {
                   ))
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         )
       })}
