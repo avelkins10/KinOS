@@ -49,27 +49,39 @@ const adminNav: NavItem[] = [
   { label: "Integrations", href: "/admin/integrations", icon: Plug },
 ]
 
-function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
+function NavLink({
+  item,
+  active,
+  collapsed,
+}: {
+  item: NavItem
+  active: boolean
+  collapsed: boolean
+}) {
   const Icon = item.icon
   return (
     <Link
       href={item.href}
-      className={cn(
-        "relative z-10 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+      style={
         active
-          ? "bg-[hsl(199,89%,48%,0.15)] text-[hsl(199,89%,48%)]"
-          : "text-[hsl(210,20%,78%,0.7)] hover:bg-[hsl(220,25%,14%)] hover:text-[hsl(210,20%,92%)]"
+          ? { backgroundColor: "rgba(14,165,233,0.15)", color: "#0ea5e9" }
+          : undefined
+      }
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        !active && "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
       )}
     >
       <Icon
-        className={cn(
-          "h-[18px] w-[18px] shrink-0",
-          active ? "text-[hsl(199,89%,48%)]" : "text-[hsl(210,20%,78%,0.5)]"
-        )}
+        className="h-[18px] w-[18px] shrink-0"
+        style={active ? { color: "#0ea5e9" } : { color: "rgba(148,163,184,0.5)" }}
       />
       {!collapsed && <span>{item.label}</span>}
       {active && !collapsed && (
-        <div className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(199,89%,48%)]" />
+        <div
+          className="ml-auto h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: "#0ea5e9" }}
+        />
       )}
     </Link>
   )
@@ -88,17 +100,21 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "relative z-20 flex h-full shrink-0 flex-col border-r border-[hsl(220,20%,16%)] bg-[hsl(220,30%,8%)] text-[hsl(210,20%,78%)] transition-all duration-300",
+        "flex h-full shrink-0 flex-col border-r border-slate-800 transition-all duration-300",
         collapsed ? "w-[68px]" : "w-[260px]"
       )}
+      style={{ backgroundColor: "#0f1520" }}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-[hsl(220,20%,16%)] px-5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[hsl(199,89%,48%)]">
+      <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5">
+        <div
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: "#0ea5e9" }}
+        >
           <span className="text-sm font-bold text-white">K</span>
         </div>
         {!collapsed && (
-          <span className="text-lg font-semibold tracking-tight text-[hsl(210,20%,92%)]">
+          <span className="text-lg font-semibold tracking-tight text-slate-100">
             KinOS
           </span>
         )}
@@ -109,11 +125,11 @@ export function AppSidebar() {
         <div className="px-3 pt-4 pb-2">
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-lg border border-[hsl(220,20%,16%)] bg-[hsl(220,25%,14%,0.5)] px-3 py-2 text-sm text-[hsl(210,20%,78%,0.6)] transition-colors hover:bg-[hsl(220,25%,14%)] hover:text-[hsl(210,20%,78%)]"
+            className="flex w-full items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-400"
           >
             <Search className="h-4 w-4" />
             <span>Search...</span>
-            <kbd className="ml-auto rounded border border-[hsl(220,20%,16%)] bg-[hsl(220,30%,8%)] px-1.5 py-0.5 font-mono text-[10px] text-[hsl(210,20%,78%,0.4)]">
+            <kbd className="ml-auto rounded border border-slate-800 bg-slate-950 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
               {"⌘K"}
             </kbd>
           </button>
@@ -123,7 +139,7 @@ export function AppSidebar() {
         <div className="flex justify-center pt-4 pb-2">
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-[hsl(210,20%,78%,0.6)] transition-colors hover:bg-[hsl(220,25%,14%)] hover:text-[hsl(210,20%,78%)]"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-400"
           >
             <Search className="h-4 w-4" />
           </button>
@@ -149,7 +165,7 @@ export function AppSidebar() {
             <button
               type="button"
               onClick={() => setAdminOpen(!adminOpen)}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[hsl(210,20%,78%,0.4)] transition-colors hover:text-[hsl(210,20%,78%,0.6)]"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-600 transition-colors hover:text-slate-500"
             >
               <span>Admin</span>
               <ChevronDown
@@ -160,7 +176,7 @@ export function AppSidebar() {
               />
             </button>
           ) : (
-            <div className="mx-auto mb-2 h-px w-8 bg-[hsl(220,20%,16%)]" />
+            <div className="mx-auto mb-2 h-px w-8 bg-slate-800" />
           )}
 
           {(adminOpen || collapsed) && (
@@ -179,28 +195,26 @@ export function AppSidebar() {
       </nav>
 
       {/* User Section */}
-      <div className="border-t border-[hsl(220,20%,16%)] p-3">
+      <div className="border-t border-slate-800 p-3">
         <div
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2",
             collapsed && "justify-center px-0"
           )}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(220,25%,14%)] text-xs font-semibold text-[hsl(210,20%,92%)]">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-200">
             AE
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-[hsl(210,20%,92%)]">
-                Austin E.
-              </p>
-              <p className="truncate text-xs text-[hsl(210,20%,78%,0.5)]">Closer</p>
+              <p className="truncate text-sm font-medium text-slate-200">Austin E.</p>
+              <p className="truncate text-xs text-slate-500">Closer</p>
             </div>
           )}
           {!collapsed && (
             <button
               type="button"
-              className="rounded-md p-1 text-[hsl(210,20%,78%,0.4)] transition-colors hover:text-[hsl(210,20%,78%)]"
+              className="rounded-md p-1 text-slate-600 transition-colors hover:text-slate-400"
             >
               <Settings className="h-4 w-4" />
             </button>
@@ -211,7 +225,7 @@ export function AppSidebar() {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="mt-2 flex w-full items-center justify-center rounded-lg py-1.5 text-[hsl(210,20%,78%,0.3)] transition-colors hover:bg-[hsl(220,25%,14%)] hover:text-[hsl(210,20%,78%,0.6)]"
+          className="mt-2 flex w-full items-center justify-center rounded-lg py-1.5 text-slate-700 transition-colors hover:bg-slate-800 hover:text-slate-500"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
