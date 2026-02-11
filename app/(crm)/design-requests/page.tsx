@@ -2,7 +2,6 @@
 
 import { DEALS } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 import { PenTool, Clock, CheckCircle2, AlertCircle, ArrowUpRight } from "lucide-react"
 
 interface DesignRequest {
@@ -69,7 +68,7 @@ export default function DesignRequestsPage() {
           const config = statusConfig[request.status]
           const Icon = config.icon
           return (
-            <Link
+            <a
               key={request.id}
               href={`/deals/${request.dealId}`}
               className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:shadow-md hover:border-primary/30"
@@ -99,7 +98,7 @@ export default function DesignRequestsPage() {
                   <p className="mt-2 text-xs text-muted-foreground/80 leading-relaxed">{request.notes}</p>
                 )}
               </div>
-            </Link>
+            </a>
           )
         })}
       </div>

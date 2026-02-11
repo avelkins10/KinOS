@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import type { Deal } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import { MapPin, Zap, Clock } from "lucide-react"
@@ -10,7 +9,7 @@ export function DealCard({ deal }: { deal: Deal }) {
   const isWarning = deal.daysInStage > 5 && deal.daysInStage <= 7
 
   return (
-    <Link
+    <a
       href={`/deals/${deal.id}`}
       className="group block rounded-lg border border-border bg-card p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
     >
@@ -73,6 +72,6 @@ export function DealCard({ deal }: { deal: Deal }) {
           style={{ width: `${Math.min((deal.daysInPipeline / 60) * 100, 100)}%` }}
         />
       </div>
-    </Link>
+    </a>
   )
 }

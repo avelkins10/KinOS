@@ -1,7 +1,6 @@
 "use client"
 
 import { TODAYS_APPOINTMENTS } from "@/lib/mock-data"
-import Link from "next/link"
 import { CalendarDays, Clock, MapPin, Video, Home, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -57,7 +56,7 @@ export default function CalendarPage() {
 
       <div className="space-y-3">
         {TODAYS_APPOINTMENTS.map((apt) => (
-          <Link
+          <a
             key={apt.id}
             href={`/deals/${apt.dealId}`}
             className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:shadow-md hover:border-primary/30"
@@ -91,7 +90,7 @@ export default function CalendarPage() {
                 Set by {apt.setter}
               </div>
             </div>
-          </Link>
+          </a>
         ))}
       </div>
 
