@@ -1,24 +1,33 @@
-"use client"
+"use client";
 
-import type { Deal } from "@/lib/mock-data"
-import { cn } from "@/lib/utils"
-import { Plus, Check, Eye, Edit, Copy, FileText, DollarSign } from "lucide-react"
+import type { DealForUI } from "@/lib/deals-mappers";
+import type { DealDetail } from "@/lib/actions/deals";
+import { cn } from "@/lib/utils";
+import {
+  Plus,
+  Check,
+  Eye,
+  Edit,
+  Copy,
+  FileText,
+  DollarSign,
+} from "lucide-react";
 
 interface Proposal {
-  id: string
-  name: string
-  lender: string
-  product: string
-  monthlyPayment: number
-  netCost: number
-  status: "draft" | "ready" | "finalized"
-  dealerFee: number
-  ppw: number
+  id: string;
+  name: string;
+  lender: string;
+  product: string;
+  monthlyPayment: number;
+  netCost: number;
+  status: "draft" | "ready" | "finalized";
+  dealerFee: number;
+  ppw: number;
 }
 
-function getMockProposals(deal: Deal): Proposal[] {
-  if (!deal.dealValue || !deal.lender) return []
-  const ppw = deal.systemSize ? deal.dealValue / (deal.systemSize * 1000) : 0
+function getMockProposals(deal: DealForUI): Proposal[] {
+  if (!deal.dealValue || !deal.lender) return [];
+  const ppw = deal.systemSize ? deal.dealValue / (deal.systemSize * 1000) : 0;
   return [
     {
       id: "p1",
@@ -42,17 +51,38 @@ function getMockProposals(deal: Deal): Proposal[] {
       dealerFee: 6,
       ppw: ppw * 1.06,
     },
-  ]
+  ];
 }
 
 const statusStyles = {
   draft: "bg-muted text-muted-foreground border-border",
   ready: "bg-primary/10 text-primary border-primary/20",
   finalized: "bg-success/10 text-success border-success/20",
-}
+};
 
-export function ProposalStep({ deal }: { deal: Deal }) {
-  const proposals = getMockProposals(deal)
+export function ProposalStep({
+  deal,
+  dealDetail,
+}: {
+  deal: DealForUI;
+  dealDetail?: DealDetail | null;
+}) {
+  const proposals =
+    dealDetail?.proposals?.length && dealDetail.proposals.some((p) => p.id)
+      ? dealDetail.proposals.map((p) => ({
+          id: p.id,
+          name: p.name ?? "Proposal",
+          lender: deal.lender ?? "",
+          product: p.financing_product_name ?? "",
+          monthlyPayment: p.monthly_payment ?? 0,
+          netCost: Number(p.net_cost) || 0,
+          status: (p.status ?? "draft") as "draft" | "ready" | "finalized",
+          dealerFee: Number(p.dealer_fee_amount) || 0,
+          ppw: p.system_size_kw
+            ? Number(p.net_cost) / (p.system_size_kw * 1000)
+            : 0,
+        }))
+      : getMockProposals(deal);
 
   if (proposals.length === 0) {
     return (
@@ -60,16 +90,20 @@ export function ProposalStep({ deal }: { deal: Deal }) {
         <div>
           <h3 className="text-lg font-bold text-foreground">Proposal</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Build a proposal with pricing, adders, discounts, and lender selection.
+            Build a proposal with pricing, adders, discounts, and lender
+            selection.
           </p>
         </div>
         <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
             <FileText className="h-7 w-7 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">No proposals yet</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            No proposals yet
+          </h3>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Complete the design phase first, then create proposals to present to the customer.
+            Complete the design phase first, then create proposals to present to
+            the customer.
           </p>
           <button
             type="button"
@@ -81,7 +115,7 @@ export function ProposalStep({ deal }: { deal: Deal }) {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -113,12 +147,28 @@ export function ProposalStep({ deal }: { deal: Deal }) {
             { label: "Base System Price", value: deal.dealValue * 0.85 },
             { label: "Equipment Adders", value: deal.dealValue * 0.08 },
             { label: "Site Adders", value: deal.dealValue * 0.04 },
-            { label: "Discounts", value: -(deal.dealValue * 0.02), isDiscount: true },
+            {
+              label: "Discounts",
+              value: -(deal.dealValue * 0.02),
+              isDiscount: true,
+            },
           ].map((row) => (
-            <div key={row.label} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+            <div
+              key={row.label}
+              className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
+            >
               <span className="text-sm text-muted-foreground">{row.label}</span>
-              <span className={cn("text-sm font-medium", row.isDiscount ? "text-success" : "text-foreground")}>
-                {row.isDiscount ? "-" : ""}${Math.abs(row.value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span
+                className={cn(
+                  "text-sm font-medium",
+                  row.isDiscount ? "text-success" : "text-foreground",
+                )}
+              >
+                {row.isDiscount ? "-" : ""}$
+                {Math.abs(row.value).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </span>
             </div>
           ))}
@@ -131,7 +181,11 @@ export function ProposalStep({ deal }: { deal: Deal }) {
                 </span>
               )}
               <span className="text-lg font-bold text-foreground">
-                ${(deal.dealValue * 0.95).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                $
+                {(deal.dealValue * 0.95).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </span>
             </div>
           </div>
@@ -145,7 +199,9 @@ export function ProposalStep({ deal }: { deal: Deal }) {
             key={p.id}
             className={cn(
               "relative rounded-xl border-2 p-5 transition-all",
-              p.status === "finalized" ? "border-success/40 bg-success/5" : "border-border hover:border-primary/20"
+              p.status === "finalized"
+                ? "border-success/40 bg-success/5"
+                : "border-border hover:border-primary/20",
             )}
           >
             {p.status === "finalized" && (
@@ -160,25 +216,42 @@ export function ProposalStep({ deal }: { deal: Deal }) {
             <div className="mt-4">
               <p className="text-3xl font-bold tracking-tight text-foreground">
                 ${p.monthlyPayment.toFixed(2)}
-                <span className="text-base font-normal text-muted-foreground">/mo</span>
+                <span className="text-base font-normal text-muted-foreground">
+                  /mo
+                </span>
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Net: ${p.netCost.toLocaleString()} {"·"} Dealer Fee: {p.dealerFee}% {"·"} ${p.ppw.toFixed(2)}/W
+                Net: ${p.netCost.toLocaleString()} {"·"} Dealer Fee:{" "}
+                {p.dealerFee}% {"·"} ${p.ppw.toFixed(2)}/W
               </p>
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize", statusStyles[p.status])}>
+              <span
+                className={cn(
+                  "rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize",
+                  statusStyles[p.status],
+                )}
+              >
                 {p.status}
               </span>
             </div>
             <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
-              <button type="button" className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
                 <Eye className="h-3 w-3" /> View
               </button>
-              <button type="button" className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
                 <Edit className="h-3 w-3" /> Edit
               </button>
-              <button type="button" className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
                 <Copy className="h-3 w-3" /> Clone
               </button>
             </div>
@@ -186,5 +259,5 @@ export function ProposalStep({ deal }: { deal: Deal }) {
         ))}
       </div>
     </div>
-  )
+  );
 }

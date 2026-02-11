@@ -1,10 +1,11 @@
-"use client"
+"use client";
 
-import React from "react"
+import React from "react";
 
-import type { Deal } from "@/lib/mock-data"
-import { Check, User, Building2, MapPin, Phone, Mail } from "lucide-react"
-import { cn } from "@/lib/utils"
+import type { DealForUI } from "@/lib/deals-mappers";
+import type { DealDetail } from "@/lib/actions/deals";
+import { Check, User, Building2, MapPin, Phone, Mail } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function ConfirmRow({
   label,
@@ -12,17 +13,19 @@ function ConfirmRow({
   icon: Icon,
   verified,
 }: {
-  label: string
-  value: string
-  icon: React.ComponentType<{ className?: string }>
-  verified: boolean
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  verified: boolean;
 }) {
   return (
     <div className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/30">
       <div
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-          verified ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+          verified
+            ? "bg-success/10 text-success"
+            : "bg-muted text-muted-foreground",
         )}
       >
         <Icon className="h-4 w-4" />
@@ -31,7 +34,9 @@ function ConfirmRow({
         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
-        <p className="mt-0.5 text-sm font-semibold text-foreground">{value || "Not assigned"}</p>
+        <p className="mt-0.5 text-sm font-semibold text-foreground">
+          {value || "Not assigned"}
+        </p>
       </div>
       {verified && (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success">
@@ -39,16 +44,23 @@ function ConfirmRow({
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export function DealAssignmentStep({ deal }: { deal: Deal }) {
+export function DealAssignmentStep({
+  deal,
+  dealDetail,
+}: {
+  deal: DealForUI;
+  dealDetail?: import("@/lib/actions/deals").DealDetail | null;
+}) {
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-bold text-foreground">Deal Assignment</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Confirm all personnel and customer information is accurate before proceeding.
+          Confirm all personnel and customer information is accurate before
+          proceeding.
         </p>
       </div>
 
@@ -58,10 +70,30 @@ export function DealAssignmentStep({ deal }: { deal: Deal }) {
           Team
         </h4>
         <div className="grid gap-3 sm:grid-cols-2">
-          <ConfirmRow icon={User} label="Closer" value={deal.closer.name} verified={true} />
-          <ConfirmRow icon={User} label="Setter" value={deal.setter.name} verified={true} />
-          <ConfirmRow icon={Building2} label="Office" value={deal.closer.office} verified={true} />
-          <ConfirmRow icon={User} label="Team" value="Residential Solar" verified={true} />
+          <ConfirmRow
+            icon={User}
+            label="Closer"
+            value={deal.closer.name}
+            verified={true}
+          />
+          <ConfirmRow
+            icon={User}
+            label="Setter"
+            value={deal.setter.name}
+            verified={true}
+          />
+          <ConfirmRow
+            icon={Building2}
+            label="Office"
+            value={deal.closer.office}
+            verified={true}
+          />
+          <ConfirmRow
+            icon={User}
+            label="Team"
+            value="Residential Solar"
+            verified={true}
+          />
         </div>
       </div>
 
@@ -71,10 +103,30 @@ export function DealAssignmentStep({ deal }: { deal: Deal }) {
           Customer
         </h4>
         <div className="grid gap-3 sm:grid-cols-2">
-          <ConfirmRow icon={User} label="Customer Name" value={deal.customerName} verified={!!deal.customerName} />
-          <ConfirmRow icon={MapPin} label="Address" value={`${deal.address}, ${deal.city}, ${deal.state}`} verified={!!deal.address} />
-          <ConfirmRow icon={Phone} label="Phone" value={deal.phone} verified={!!deal.phone} />
-          <ConfirmRow icon={Mail} label="Email" value={deal.email} verified={!!deal.email} />
+          <ConfirmRow
+            icon={User}
+            label="Customer Name"
+            value={deal.customerName}
+            verified={!!deal.customerName}
+          />
+          <ConfirmRow
+            icon={MapPin}
+            label="Address"
+            value={`${deal.address}, ${deal.city}, ${deal.state}`}
+            verified={!!deal.address}
+          />
+          <ConfirmRow
+            icon={Phone}
+            label="Phone"
+            value={deal.phone}
+            verified={!!deal.phone}
+          />
+          <ConfirmRow
+            icon={Mail}
+            label="Email"
+            value={deal.email}
+            verified={!!deal.email}
+          />
         </div>
       </div>
 
@@ -90,5 +142,5 @@ export function DealAssignmentStep({ deal }: { deal: Deal }) {
         </button>
       </div>
     </div>
-  )
+  );
 }

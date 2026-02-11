@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -41,9 +40,9 @@ interface NavItem {
   badge?: string;
 }
 
-const mainNav: NavItem[] = [
+const mainNavItems: Omit<NavItem, "badge">[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Leads", href: "/leads", icon: Users, badge: "3" },
+  { label: "Leads", href: "/leads", icon: Users },
   { label: "Deals", href: "/deals", icon: Handshake },
   { label: "Reports", href: "/reports", icon: BarChart3 },
 ];
@@ -134,13 +133,26 @@ function NavLink({
 
 const ADMIN_ROLES = ["admin", "office_manager", "regional_manager"];
 
-export function AppSidebar() {
+export interface AppSidebarProps {
+  leadCount?: string;
+  dealCount?: string;
+}
+
+export function AppSidebar({ leadCount, dealCount }: AppSidebarProps = {}) {
   const pathname = usePathname();
   const { user } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [collapsed, setCollapsed] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const showAdmin = user?.role && ADMIN_ROLES.includes(user.role);
+
+  const mainNav: NavItem[] = mainNavItems.map((item) => {
+    if (item.label === "Leads" && leadCount != null)
+      return { ...item, badge: leadCount };
+    if (item.label === "Deals" && dealCount != null)
+      return { ...item, badge: dealCount };
+    return item;
+  });
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";

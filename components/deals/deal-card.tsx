@@ -1,15 +1,16 @@
-"use client"
+"use client";
 
-import type { Deal } from "@/lib/mock-data"
-import { cn } from "@/lib/utils"
-import { MapPin, Zap, Clock } from "lucide-react"
+import type { DealForUI } from "@/lib/deals-mappers";
+import { cn } from "@/lib/utils";
+import { MapPin, Zap, Clock } from "lucide-react";
+import Link from "next/link";
 
-export function DealCard({ deal }: { deal: Deal }) {
-  const isStale = deal.daysInStage > 7
-  const isWarning = deal.daysInStage > 5 && deal.daysInStage <= 7
+export function DealCard({ deal }: { deal: DealForUI }) {
+  const isStale = deal.daysInStage > 7;
+  const isWarning = deal.daysInStage > 5 && deal.daysInStage <= 7;
 
   return (
-    <a
+    <Link
       href={`/deals/${deal.id}`}
       className="group block rounded-lg border border-border bg-card p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
     >
@@ -18,13 +19,15 @@ export function DealCard({ deal }: { deal: Deal }) {
           {deal.customerName}
         </p>
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
-          {deal.closer.avatar}
+          {deal.closer?.avatar ?? "?"}
         </div>
       </div>
 
       <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
         <MapPin className="h-3 w-3 shrink-0" />
-        <span className="truncate">{deal.address}, {deal.city}</span>
+        <span className="truncate">
+          {deal.address}, {deal.city}
+        </span>
       </div>
 
       <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -57,7 +60,7 @@ export function DealCard({ deal }: { deal: Deal }) {
               ? "text-destructive"
               : isWarning
                 ? "text-warning"
-                : "text-muted-foreground"
+                : "text-muted-foreground",
           )}
         >
           <Clock className="h-2.5 w-2.5" />
@@ -69,9 +72,11 @@ export function DealCard({ deal }: { deal: Deal }) {
       <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-muted">
         <div
           className="h-full rounded-full bg-primary/60 transition-all duration-500"
-          style={{ width: `${Math.min((deal.daysInPipeline / 60) * 100, 100)}%` }}
+          style={{
+            width: `${Math.min((deal.daysInPipeline / 60) * 100, 100)}%`,
+          }}
         />
       </div>
-    </a>
-  )
+    </Link>
+  );
 }

@@ -2,40 +2,15 @@
 // KinOS Solar CRM — Mock Data
 // ============================================
 
-export type DealStage =
-  | "new_lead"
-  | "design_requested"
-  | "design_complete"
-  | "proposal"
-  | "financing"
-  | "contracting"
-  | "pre_intake"
-  | "submitted"
-  | "intake_approved";
+import type { DealStage } from "@/lib/constants/pipeline";
+import {
+  STAGE_LABELS,
+  STAGE_COLORS,
+  STAGE_ORDER,
+} from "@/lib/constants/pipeline";
 
-export const STAGE_LABELS: Record<DealStage, string> = {
-  new_lead: "New Lead",
-  design_requested: "Design Requested",
-  design_complete: "Design Complete",
-  proposal: "Proposal",
-  financing: "Financing",
-  contracting: "Contracting",
-  pre_intake: "Pre-Intake",
-  submitted: "Submitted",
-  intake_approved: "Intake Approved",
-};
-
-export const STAGE_COLORS: Record<DealStage, string> = {
-  new_lead: "bg-chart-4/15 text-chart-4 border-chart-4/25",
-  design_requested: "bg-primary/15 text-primary border-primary/25",
-  design_complete: "bg-chart-2/15 text-chart-2 border-chart-2/25",
-  proposal: "bg-chart-1/15 text-chart-1 border-chart-1/25",
-  financing: "bg-warning/15 text-warning border-warning/25",
-  contracting: "bg-chart-2/15 text-chart-2 border-chart-2/25",
-  pre_intake: "bg-accent/15 text-accent border-accent/25",
-  submitted: "bg-success/15 text-success border-success/25",
-  intake_approved: "bg-success/15 text-success border-success/25",
-};
+export type { DealStage };
+export { STAGE_LABELS, STAGE_COLORS, STAGE_ORDER };
 
 export interface Rep {
   id: string;
@@ -455,7 +430,7 @@ export const DEALS: Deal[] = [
     address: "6639 E Camelback Rd",
     city: "Scottsdale",
     state: "AZ",
-    stage: "submitted",
+    stage: "pto",
     closer: REPS[0],
     setter: REPS[3],
     systemSize: 9.88,

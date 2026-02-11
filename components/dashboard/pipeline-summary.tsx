@@ -1,47 +1,45 @@
 "use client";
 
-import { DEALS, STAGE_LABELS, type DealStage } from "@/lib/mock-data";
+import {
+  STAGE_ORDER,
+  STAGE_LABELS,
+  STAGE_COLORS,
+} from "@/lib/constants/pipeline";
+import type { DealStage } from "@/lib/constants/pipeline";
 import { cn } from "@/lib/utils";
 
-const stageOrder: DealStage[] = [
-  "new_lead",
-  "design_requested",
-  "design_complete",
-  "proposal",
-  "financing",
-  "contracting",
-  "pre_intake",
-  "submitted",
-  "intake_approved",
-];
+export interface PipelineStageDatum {
+  stage: string;
+  count: number;
+  totalValue: number;
+}
 
-const stageColors: Record<DealStage, string> = {
-  new_lead: "bg-chart-4",
-  design_requested: "bg-primary",
-  design_complete: "bg-chart-2",
-  proposal: "bg-chart-1",
-  financing: "bg-warning",
-  contracting: "bg-chart-2",
-  pre_intake: "bg-accent",
-  submitted: "bg-success",
-  intake_approved: "bg-success",
-};
+interface PipelineSummaryProps {
+  pipelineByStage: PipelineStageDatum[];
+  totalDeals?: number;
+}
 
-export function PipelineSummary({ closerId }: { closerId?: string }) {
-  const deals = closerId
-    ? DEALS.filter((d) => d.closer.id === closerId)
-    : DEALS;
-
-  const stageCounts = stageOrder.map((stage) => ({
-    stage,
-    label: STAGE_LABELS[stage],
-    count: deals.filter((d) => d.stage === stage).length,
-    value: deals
-      .filter((d) => d.stage === stage)
-      .reduce((sum, d) => sum + d.dealValue, 0),
-  }));
-
-  const totalDeals = deals.length;
+export function PipelineSummary({
+  pipelineByStage,
+  totalDeals: totalDealsProp,
+}: PipelineSummaryProps) {
+  const byStage = new Map(
+    pipelineByStage.map((p) => [
+      p.stage,
+      { count: p.count, totalValue: p.totalValue },
+    ]),
+  );
+  const stageCounts = STAGE_ORDER.map((stage: DealStage) => {
+    const row = byStage.get(stage) ?? { count: 0, totalValue: 0 };
+    return {
+      stage,
+      label: STAGE_LABELS[stage],
+      count: row.count,
+      value: row.totalValue,
+    };
+  });
+  const totalDeals =
+    totalDealsProp ?? stageCounts.reduce((s, r) => s + r.count, 0);
   const maxCount = Math.max(...stageCounts.map((s) => s.count), 1);
 
   return (
@@ -63,7 +61,7 @@ export function PipelineSummary({ closerId }: { closerId?: string }) {
                 <div
                   className={cn(
                     "flex h-full items-center rounded-lg transition-all duration-700 ease-out",
-                    stageColors[stage],
+                    STAGE_COLORS[stage],
                   )}
                   style={{
                     width: `${Math.max((count / maxCount) * 100, count > 0 ? 10 : 0)}%`,

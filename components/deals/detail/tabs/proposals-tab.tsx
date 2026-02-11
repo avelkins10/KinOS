@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import type { Deal } from "@/lib/mock-data"
+import type { DealForUI } from "@/lib/deals-mappers"
 import { cn } from "@/lib/utils"
 import { Plus, Copy, Edit, Eye, Check, FileText } from "lucide-react"
 
@@ -16,7 +16,7 @@ interface Proposal {
   dealerFee: number
 }
 
-function getMockProposals(deal: Deal): Proposal[] {
+function getMockProposals(deal: DealForUI): Proposal[] {
   if (!deal.dealValue || !deal.lender) return []
   return [
     {
@@ -48,7 +48,7 @@ const statusStyles = {
   finalized: "bg-success/10 text-success border-success/20",
 }
 
-export function ProposalsTab({ deal }: { deal: Deal }) {
+export function ProposalsTab({ deal }: { deal: DealForUI }) {
   const proposals = getMockProposals(deal)
 
   if (proposals.length === 0) {

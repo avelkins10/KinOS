@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import type { Deal } from "@/lib/mock-data"
-import { cn } from "@/lib/utils"
-import { Sun, Zap, BarChart3, ExternalLink, Clock, Check } from "lucide-react"
+import type { DealForUI } from "@/lib/deals-mappers";
+import { cn } from "@/lib/utils";
+import { Sun, Zap, BarChart3, ExternalLink, Clock, Check } from "lucide-react";
 
-export function DesignsStep({ deal }: { deal: Deal }) {
-  const hasDesign = !!deal.systemSize
+export function DesignsStep({ deal }: { deal: DealForUI }) {
+  const hasDesign = !!deal.systemSize;
 
   if (!hasDesign) {
     return (
@@ -21,9 +21,12 @@ export function DesignsStep({ deal }: { deal: Deal }) {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
             <Sun className="h-7 w-7 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">No design yet</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            No design yet
+          </h3>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Create an Aurora project to generate a solar design for this customer.
+            Create an Aurora project to generate a solar design for this
+            customer.
           </p>
           <button
             type="button"
@@ -35,7 +38,7 @@ export function DesignsStep({ deal }: { deal: Deal }) {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -49,7 +52,9 @@ export function DesignsStep({ deal }: { deal: Deal }) {
         </div>
         <div className="flex items-center gap-2 rounded-full bg-success/10 border border-success/20 px-3 py-1.5">
           <Check className="h-3.5 w-3.5 text-success" />
-          <span className="text-xs font-bold text-success">Design Complete</span>
+          <span className="text-xs font-bold text-success">
+            Design Complete
+          </span>
         </div>
       </div>
 
@@ -58,40 +63,58 @@ export function DesignsStep({ deal }: { deal: Deal }) {
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 text-primary">
             <Zap className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">System Size</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              System Size
+            </span>
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{deal.systemSize} kW</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+            {deal.systemSize} kW
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 text-primary">
             <Sun className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Panels</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Panels
+            </span>
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{deal.panelCount}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+            {deal.panelCount}
+          </p>
           <p className="text-xs text-muted-foreground">{deal.panelBrand}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 text-primary">
             <BarChart3 className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Annual Prod.</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Annual Prod.
+            </span>
           </div>
           <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
-            {deal.annualProduction ? `${(deal.annualProduction / 1000).toFixed(1)}` : "--"}
+            {deal.annualProduction
+              ? `${(deal.annualProduction / 1000).toFixed(1)}`
+              : "--"}
           </p>
           <p className="text-xs text-muted-foreground">MWh/yr</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 text-primary">
             <Zap className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Offset</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Offset
+            </span>
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{deal.offset ?? "--"}%</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+            {deal.offset ?? "--"}%
+          </p>
         </div>
       </div>
 
       {/* Equipment Detail */}
       <div className="rounded-xl border border-border p-5">
-        <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Equipment</h4>
+        <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Equipment
+        </h4>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -99,7 +122,9 @@ export function DesignsStep({ deal }: { deal: Deal }) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Panel Brand</p>
-              <p className="text-sm font-semibold text-foreground">{deal.panelBrand}</p>
+              <p className="text-sm font-semibold text-foreground">
+                {deal.panelBrand}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -108,7 +133,9 @@ export function DesignsStep({ deal }: { deal: Deal }) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Inverter</p>
-              <p className="text-sm font-semibold text-foreground">{deal.inverterBrand}</p>
+              <p className="text-sm font-semibold text-foreground">
+                {deal.inverterBrand}
+              </p>
             </div>
           </div>
         </div>
@@ -118,7 +145,9 @@ export function DesignsStep({ deal }: { deal: Deal }) {
       <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-4">
         <div className="flex items-center gap-3">
           <Clock className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Design completed 3 days ago</span>
+          <span className="text-sm text-muted-foreground">
+            Design completed 3 days ago
+          </span>
         </div>
         <button
           type="button"
@@ -129,5 +158,5 @@ export function DesignsStep({ deal }: { deal: Deal }) {
         </button>
       </div>
     </div>
-  )
+  );
 }

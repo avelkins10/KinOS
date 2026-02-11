@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import type { DealStage } from "@/lib/mock-data";
+import type { DealStage } from "@/lib/constants/pipeline";
 import { cn } from "@/lib/utils";
 import {
   Check,
@@ -38,9 +38,14 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
 export function getStepIndexFromStage(stage: DealStage): number {
   switch (stage) {
     case "new_lead":
+    case "appointment_set":
+    case "appointment_completed":
+    case "cancelled":
+    case "on_hold":
       return 0;
     case "design_requested":
-      return 1;
+    case "design_in_progress":
+      return 2;
     case "design_complete":
       return 2;
     case "proposal":
@@ -51,8 +56,11 @@ export function getStepIndexFromStage(stage: DealStage): number {
       return 5;
     case "pre_intake":
       return 7;
-    case "submitted":
-    case "intake_approved":
+    case "install_scheduled":
+    case "install_in_progress":
+    case "install_complete":
+    case "inspection":
+    case "pto":
       return 8;
     default:
       return 0;

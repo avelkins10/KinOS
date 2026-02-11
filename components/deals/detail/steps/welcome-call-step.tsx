@@ -1,33 +1,79 @@
-"use client"
+"use client";
 
-import type { Deal } from "@/lib/mock-data"
-import { cn } from "@/lib/utils"
-import { Check, PhoneCall, Square } from "lucide-react"
+import type { DealForUI } from "@/lib/deals-mappers";
+import { cn } from "@/lib/utils";
+import { Check, PhoneCall, Square } from "lucide-react";
 
 interface ChecklistItem {
-  id: string
-  label: string
-  description: string
-  completed: boolean
+  id: string;
+  label: string;
+  description: string;
+  completed: boolean;
 }
 
-function getChecklist(deal: Deal): ChecklistItem[] {
-  const isLate = deal.stage === "submitted" || deal.stage === "contract_signed"
+function getChecklist(deal: DealForUI): ChecklistItem[] {
+  const isLate = [
+    "contracting",
+    "install_scheduled",
+    "install_complete",
+    "inspection",
+    "pto",
+  ].includes(deal.stage);
   return [
-    { id: "wc1", label: "Confirm installation address", description: "Verify the customer's installation address matches the contract.", completed: isLate },
-    { id: "wc2", label: "Review system details", description: `${deal.systemSize ?? 0} kW system, ${deal.panelCount ?? 0} panels, ${deal.inverterBrand ?? "TBD"} inverter.`, completed: isLate },
-    { id: "wc3", label: "Explain timeline expectations", description: "Provide estimated timeline for permitting, installation, and PTO.", completed: isLate },
-    { id: "wc4", label: "Confirm financing terms", description: `${deal.lender ?? "No lender"} - ${deal.lenderProduct ?? "N/A"}, $${deal.monthlyPayment ?? 0}/mo.`, completed: isLate },
-    { id: "wc5", label: "Review lender-specific requirements", description: "Cover any lender-specific post-sale disclosures or acknowledgements.", completed: isLate },
-    { id: "wc6", label: "Verify customer contact info", description: `${deal.phone} / ${deal.email}`, completed: isLate },
-    { id: "wc7", label: "Schedule site survey", description: "Coordinate a date for the site survey with the customer.", completed: deal.stage === "submitted" },
-  ]
+    {
+      id: "wc1",
+      label: "Confirm installation address",
+      description:
+        "Verify the customer's installation address matches the contract.",
+      completed: isLate,
+    },
+    {
+      id: "wc2",
+      label: "Review system details",
+      description: `${deal.systemSize ?? 0} kW system, ${deal.panelCount ?? 0} panels, ${deal.inverterBrand ?? "TBD"} inverter.`,
+      completed: isLate,
+    },
+    {
+      id: "wc3",
+      label: "Explain timeline expectations",
+      description:
+        "Provide estimated timeline for permitting, installation, and PTO.",
+      completed: isLate,
+    },
+    {
+      id: "wc4",
+      label: "Confirm financing terms",
+      description: `${deal.lender ?? "No lender"} - ${deal.lenderProduct ?? "N/A"}, $${deal.monthlyPayment ?? 0}/mo.`,
+      completed: isLate,
+    },
+    {
+      id: "wc5",
+      label: "Review lender-specific requirements",
+      description:
+        "Cover any lender-specific post-sale disclosures or acknowledgements.",
+      completed: isLate,
+    },
+    {
+      id: "wc6",
+      label: "Verify customer contact info",
+      description: `${deal.phone} / ${deal.email}`,
+      completed: isLate,
+    },
+    {
+      id: "wc7",
+      label: "Schedule site survey",
+      description: "Coordinate a date for the site survey with the customer.",
+      completed: ["install_scheduled", "install_complete", "pto"].includes(
+        deal.stage,
+      ),
+    },
+  ];
 }
 
-export function WelcomeCallStep({ deal }: { deal: Deal }) {
-  const items = getChecklist(deal)
-  const completedCount = items.filter((i) => i.completed).length
-  const allDone = completedCount === items.length
+export function WelcomeCallStep({ deal }: { deal: DealForUI }) {
+  const items = getChecklist(deal);
+  const completedCount = items.filter((i) => i.completed).length;
+  const allDone = completedCount === items.length;
 
   return (
     <div className="space-y-6">
@@ -51,12 +97,19 @@ export function WelcomeCallStep({ deal }: { deal: Deal }) {
         <PhoneCall className="h-5 w-5 text-primary" />
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-sm font-medium text-foreground">Checklist Progress</span>
-            <span className="text-xs font-bold text-muted-foreground">{completedCount}/{items.length}</span>
+            <span className="text-sm font-medium text-foreground">
+              Checklist Progress
+            </span>
+            <span className="text-xs font-bold text-muted-foreground">
+              {completedCount}/{items.length}
+            </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
-              className={cn("h-full rounded-full transition-all duration-500", allDone ? "bg-success" : "bg-primary")}
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                allDone ? "bg-success" : "bg-primary",
+              )}
               style={{ width: `${(completedCount / items.length) * 100}%` }}
             />
           </div>
@@ -70,13 +123,18 @@ export function WelcomeCallStep({ deal }: { deal: Deal }) {
             key={item.id}
             className={cn(
               "flex items-start gap-3 rounded-xl border p-4 transition-all",
-              item.completed ? "border-success/20 bg-success/5" : "border-border bg-card hover:bg-muted/30"
+              item.completed
+                ? "border-success/20 bg-success/5"
+                : "border-border bg-card hover:bg-muted/30",
             )}
           >
             <div className="mt-0.5">
               {item.completed ? (
                 <div className="flex h-5 w-5 items-center justify-center rounded bg-success">
-                  <Check className="h-3 w-3 text-success-foreground" strokeWidth={3} />
+                  <Check
+                    className="h-3 w-3 text-success-foreground"
+                    strokeWidth={3}
+                  />
                 </div>
               ) : (
                 <div className="flex h-5 w-5 items-center justify-center rounded border-2 border-border">
@@ -85,14 +143,23 @@ export function WelcomeCallStep({ deal }: { deal: Deal }) {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className={cn("text-sm font-medium", item.completed ? "text-success line-through" : "text-foreground")}>
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  item.completed
+                    ? "text-success line-through"
+                    : "text-foreground",
+                )}
+              >
                 {item.label}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{item.description}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {item.description}
+              </p>
             </div>
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }

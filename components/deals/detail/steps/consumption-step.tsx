@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import React from "react"
+import React from "react";
 
-import type { Deal } from "@/lib/mock-data"
-import { Zap, Building2, DollarSign, BarChart3 } from "lucide-react"
+import type { DealForUI } from "@/lib/deals-mappers";
+import { Zap, Building2, DollarSign, BarChart3 } from "lucide-react";
 
 function DataField({
   label,
@@ -11,36 +11,43 @@ function DataField({
   icon: Icon,
   unit,
 }: {
-  label: string
-  value: string
-  icon: React.ComponentType<{ className?: string }>
-  unit?: string
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  unit?: string;
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" />
-        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider">
+          {label}
+        </span>
       </div>
       <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-2xl font-bold tracking-tight text-foreground">{value}</span>
+        <span className="text-2xl font-bold tracking-tight text-foreground">
+          {value}
+        </span>
         {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
       </div>
     </div>
-  )
+  );
 }
 
-export function ConsumptionStep({ deal }: { deal: Deal }) {
-  const hasData = !!deal.utilityAccount
-  const mockBill = 245
-  const mockKwh = deal.annualProduction ? Math.round(deal.annualProduction * 0.95) : 14400
+export function ConsumptionStep({ deal }: { deal: DealForUI }) {
+  const hasData = !!deal.utilityAccount;
+  const mockBill = 245;
+  const mockKwh = deal.annualProduction
+    ? Math.round(deal.annualProduction * 0.95)
+    : 14400;
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-bold text-foreground">Consumption</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Enter the customer{"'"}s monthly electric bill, annual kWh usage, and utility company.
+          Enter the customer{"'"}s monthly electric bill, annual kWh usage, and
+          utility company.
         </p>
       </div>
 
@@ -53,7 +60,11 @@ export function ConsumptionStep({ deal }: { deal: Deal }) {
           <DataField
             icon={Building2}
             label="Utility Company"
-            value={deal.utilityAccount ? deal.utilityAccount.split("-")[0] : "Not set"}
+            value={
+              deal.utilityAccount
+                ? deal.utilityAccount.split("-")[0]
+                : "Not set"
+            }
           />
           <DataField
             icon={BarChart3}
@@ -69,9 +80,24 @@ export function ConsumptionStep({ deal }: { deal: Deal }) {
           Usage Data
         </h4>
         <div className="grid gap-3 sm:grid-cols-3">
-          <DataField icon={DollarSign} label="Monthly Bill" value={hasData ? `$${mockBill}` : "--"} unit="/mo" />
-          <DataField icon={Zap} label="Annual kWh" value={hasData ? mockKwh.toLocaleString() : "--"} unit="kWh" />
-          <DataField icon={BarChart3} label="Avg Monthly kWh" value={hasData ? Math.round(mockKwh / 12).toLocaleString() : "--"} unit="kWh" />
+          <DataField
+            icon={DollarSign}
+            label="Monthly Bill"
+            value={hasData ? `$${mockBill}` : "--"}
+            unit="/mo"
+          />
+          <DataField
+            icon={Zap}
+            label="Annual kWh"
+            value={hasData ? mockKwh.toLocaleString() : "--"}
+            unit="kWh"
+          />
+          <DataField
+            icon={BarChart3}
+            label="Avg Monthly kWh"
+            value={hasData ? Math.round(mockKwh / 12).toLocaleString() : "--"}
+            unit="kWh"
+          />
         </div>
       </div>
 
@@ -93,17 +119,37 @@ export function ConsumptionStep({ deal }: { deal: Deal }) {
                 </tr>
               </thead>
               <tbody>
-                {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((month, idx) => {
-                  const seasonal = [0.7, 0.7, 0.85, 0.95, 1.2, 1.4, 1.5, 1.5, 1.3, 1.0, 0.8, 0.7]
-                  const kwh = Math.round((mockKwh / 12) * seasonal[idx])
-                  const cost = Math.round(kwh * 0.15)
+                {[
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec",
+                ].map((month, idx) => {
+                  const seasonal = [
+                    0.7, 0.7, 0.85, 0.95, 1.2, 1.4, 1.5, 1.5, 1.3, 1.0, 0.8,
+                    0.7,
+                  ];
+                  const kwh = Math.round((mockKwh / 12) * seasonal[idx]);
+                  const cost = Math.round(kwh * 0.15);
                   return (
                     <tr key={month}>
-                      <td className="text-sm font-medium text-foreground">{month} 2025</td>
-                      <td className="text-sm text-foreground">{kwh.toLocaleString()}</td>
+                      <td className="text-sm font-medium text-foreground">
+                        {month} 2025
+                      </td>
+                      <td className="text-sm text-foreground">
+                        {kwh.toLocaleString()}
+                      </td>
                       <td className="text-sm text-foreground">${cost}</td>
                     </tr>
-                  )
+                  );
                 })}
               </tbody>
             </table>
@@ -122,5 +168,5 @@ export function ConsumptionStep({ deal }: { deal: Deal }) {
         </button>
       </div>
     </div>
-  )
+  );
 }
