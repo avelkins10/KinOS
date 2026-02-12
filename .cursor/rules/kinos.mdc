@@ -9,17 +9,27 @@ alwaysApply: true
 ## What This Project Is
 KinOS is an internal CRM replacing Enerflo for KIN Home's solar sales operations.
 Built with Next.js 16 (App Router), Supabase (Postgres + Auth + RLS), deployed on Vercel.
-Epics 0–5 are complete. Epic 6 (Aurora Solar integration) is next.
+Epics 0–7 are complete (Auth, RepCard, Pipeline, Leads, Calendar, Aurora Design, Proposal/Pricing). Epic 8 (Financing) is next.
 
-## Critical Documentation
-ALWAYS read these files before making architectural decisions:
-- `/docs/PROJECT-KNOWLEDGE.md` — Master knowledge base (schema, data flows, APIs, decisions)
-- `/docs/db-audit.md` — Live database inventory (47 tables + 2 views, verified 2026-02-11)
-- `/docs/blueprint.md` — Full system architecture (reference, may lag behind actual state)
+## Before You Start ANY Task
+Read these docs before making changes — not just for "architectural decisions", but for ANY non-trivial work.
+The goal: every agent understands what exists, what we're building toward, and how current work fits in.
+
+**Understand the vision and future:**
+- `/docs/kinos-vision-and-state.md` — What we're building, why, current state, architecture decisions, what's next
+- `/docs/kinos-future-features.md` — Detailed explainers for ALL planned features with build constraints. READ BEFORE BUILDING.
+
+**Understand what exists today:**
+- `/docs/PROJECT-KNOWLEDGE.md` — Master knowledge base: schema, migrations, API routes, epic status. **Single source of truth.**
+- `/docs/db-audit.md` — Live database inventory with column summaries (51 tables + 2 views, verified 2026-02-12)
+- `/docs/schema-reference.md` — Column-level schema from live DB (51 tables, 952 columns)
+
+**Architecture reference:**
+- `/docs/blueprint.md` — Full system architecture spec (reference, may lag behind actual state)
 
 ## Tech Stack
 - **Framework:** Next.js 16 with App Router (NOT Pages Router). Middleware file is `proxy.ts` not `middleware.ts`.
-- **Database:** Supabase (Postgres) with Row Level Security. 47 tables + 2 views live.
+- **Database:** Supabase (Postgres) with Row Level Security. 51 tables + 2 views live.
 - **Auth:** Supabase Auth (email/password). No self-registration. Admin creates accounts.
 - **Styling:** Tailwind CSS + shadcn/ui components
 - **Language:** TypeScript (strict mode)
@@ -50,14 +60,14 @@ Backward allowed: design_complete/proposal_sent → design_requested (redesign)
 
 KinOS pipeline ENDS at intake_approved. Everything after (install, permitting, inspection, PTO) lives in Quickbase.
 
-## Key Tables (column counts from live DB)
-- **deals** (78 cols) — core deal record with stage, pricing, system details, Aurora IDs
+## Key Tables (column counts from live DB — verify against `docs/schema-reference.md`)
+- **deals** (93 cols) — core deal record with stage, pricing, system details, Aurora IDs
 - **contacts** (44 cols) — customer info with utility/consumption fields, RepCard sync
-- **proposals** (70 cols) — full pricing waterfall with design snapshot
+- **proposals** (72 cols) — full pricing waterfall with design snapshot
 - **users** (34 cols) — reps with RepCard sync, permission overrides
 - **appointments** (24 cols) — RepCard appointment tracking with status/outcome
 - **lender_products** (28 cols) — lender terms, rates, fee structure
-- **v_deal_detail** (94 cols) — denormalized view joining deal + contact + users + office + team + lender
+- **v_deal_detail** (94+ cols) — denormalized view joining deal + contact + users + office + team + lender
 - **v_deal_pipeline** (20 cols) — compact view for kanban/list display
 
 ## Existing API Routes
@@ -102,56 +112,65 @@ KinOS pipeline ENDS at intake_approved. Everything after (install, permitting, i
 
 ## Integrations Status
 - **RepCard:** ✅ Complete — 7 webhook handlers, user sync, contact creation
-- **Aurora Solar:** 🔜 Epic 6 — API + webhooks for design workflow
-- **Lender APIs:** 📋 Planned (Epic 8)
-- **PandaDoc/SignNow:** 📋 Planned (Epic 9)
-- **Quickbase:** 📋 Planned (Epic 10)
+- **Aurora Solar:** ✅ Complete — API client, service layer, webhooks, 3 design paths
+- **Lender APIs:** 📋 Planned — 6 lenders with API access
+- **Arrivy:** 📋 Planned — Site survey scheduling + field management
+- **PandaDoc/SignNow:** 📋 Planned — Contract signing
+- **Quickbase:** 📋 Planned — Submission + post-sale sync
+- **Sequifi/CaptiveIQ:** 📋 Planned — Commission push
+- **Twilio:** 📋 Planned — Notifications
 
-## Aurora Solar Integration (Epic 6 context)
+## Aurora Solar Integration (Epic 6 — Complete)
 - Base URL: `https://api.aurorasolar.com`
 - Auth: Bearer token + `X-Aurora-Api-Version: 2024.05`
 - Tenant ID: `034b1c47-310a-460f-9d5d-b625dd354f12`
 - Aurora webhooks are GET requests with data in URL query params (NOT POST with JSON)
-- Key fields already on deals: aurora_project_id, aurora_design_id, system_size_kw, annual_production_kwh, offset_percentage, panel_count, panel_model, inverter_model
-- Still needed: aurora_design_request_id (TEXT)
+- Key fields on deals: aurora_project_id, aurora_design_id, aurora_design_request_id, aurora_proposal_id, aurora_sales_mode_url, design_status, system_size_kw, annual_production_kwh, offset_percentage, panel_count, panel_model, inverter_model
 
 ## Schema Drift Warning (Users table)
 The live users table differs from blueprint. Missing fields that will be needed later:
 kin_id, job_title, sequifi_id, captiveiq_id, quickbase_record_id, repcard_username
 Do NOT add these unless explicitly asked — they're tracked for a future migration.
 
+## Future-Aware Development
+Before building any feature, check `docs/kinos-future-features.md` for constraints that affect your implementation. Current code must support:
+- Adapter pattern for all external integrations
+- Notification events on deal state changes
+- Audit trails on admin-configurable values
+- RLS policies on every new table
+- Responsive layouts (no desktop-only patterns)
+
+Post-sale pipeline visibility, pricing engine admin, Arrivy site survey integration, and change order management are all planned. Don't build patterns that block these.
+
 ---
 
-## POST-IMPLEMENTATION DOCUMENTATION REQUIREMENTS
+## POST-IMPLEMENTATION: Keep Everything In Sync
 
-After completing ANY task that changes the database schema, adds/removes API routes,
-adds/removes tables, or changes the deal pipeline, you MUST update the relevant
-documentation files before marking the task complete.
+After completing ANY task that changes the system, you MUST update ALL affected files before committing.
+Multiple files contain overlapping information. If you change something, update it EVERYWHERE it appears.
 
-### When to update:
+### Update Matrix
 
-1. **New migration or schema change** → Update `docs/PROJECT-KNOWLEDGE.md` section 3 (Database Schema)
-   - Add new tables to the table summary
-   - Add new migrations to the migration list
-   - Note any new columns on existing tables
-   - Update `docs/db-audit.md` with the table inventory
+| What changed | Files to update |
+|---|---|
+| **New/modified table or column** | `docs/schema-reference.md`, `docs/db-audit.md`, `docs/PROJECT-KNOWLEDGE.md` §3, table counts in `CLAUDE.md` + `.cursor/rules/kinos.mdc` (Tech Stack + Key Tables) |
+| **New migration** | `docs/PROJECT-KNOWLEDGE.md` §3 migration list |
+| **New API route or webhook** | `docs/PROJECT-KNOWLEDGE.md` §4, `.cursor/rules/kinos.mdc` Existing API Routes |
+| **New page or UI route** | `docs/PROJECT-KNOWLEDGE.md` §4, `.cursor/rules/kinos.mdc` Existing Pages |
+| **New/changed integration** | `CLAUDE.md` Integrations Status, `.cursor/rules/kinos.mdc` Integrations Status, `docs/PROJECT-KNOWLEDGE.md` §1, `docs/blueprint.md` relevant section |
+| **Epic completed** | `CLAUDE.md` epic status line, `.cursor/rules/kinos.mdc` epic status line, `docs/PROJECT-KNOWLEDGE.md` §9 |
+| **Architecture decision** | `docs/PROJECT-KNOWLEDGE.md` §10, `docs/blueprint.md`, `docs/kinos-vision-and-state.md` if strategic |
+| **Pipeline stages changed** | `CLAUDE.md` Pipeline Stages, `.cursor/rules/kinos.mdc` Pipeline Stages, `docs/PROJECT-KNOWLEDGE.md` §4, `docs/blueprint.md` §9 |
 
-2. **New API route or webhook** → Update `docs/PROJECT-KNOWLEDGE.md` section 4 (App Routes)
-   - Add the route to the API Routes list
-   - If it's a webhook, update section 5.2
+### Update As You Go — Not At The End
+Do NOT batch doc updates for the end of a task. Update docs **immediately after each change** — after each migration, each new route, each new page. If you write a migration then move on to building the UI, update the schema docs BEFORE starting the UI work.
 
-3. **New page or UI route** → Update `docs/PROJECT-KNOWLEDGE.md` section 4 (App Routes)
+Why: context windows run out. If you save doc updates for last, they never happen, and the next agent starts with stale information. Treat doc updates as part of the implementation step, not a separate cleanup phase.
 
-4. **Epic completed** → Update `docs/PROJECT-KNOWLEDGE.md` section 9 (Epic Status)
-   - Change status from 📋 Planned → ✅ Complete
-   - Add summary notes
+If you are running low on context and cannot finish the full task, **prioritize doc updates for work already completed** over starting new code. Incomplete code can be continued by the next agent — but only if the docs reflect what was actually built.
 
-5. **Architecture decision** → Update section 10 (Key Architecture Decisions)
-
-6. **Pipeline stages changed** → Update section 4 (Deal Lifecycle)
-
-### Rules:
-- Update the `Last updated` date at the top of PROJECT-KNOWLEDGE.md
-- Keep entries concise — one line per table, one line per route
-- Don't remove existing entries, only add or modify
-- Commit doc updates in the SAME commit as the code changes
+### Rules
+- Update `Last updated` dates on any doc you touch
+- Commit doc updates in the SAME commit as the code changes (or immediately after if the change is already committed)
+- If you're unsure whether a file needs updating, read it and check
+- The goal: the NEXT agent that reads these files gets accurate information

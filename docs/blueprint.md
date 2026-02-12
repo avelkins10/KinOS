@@ -1,9 +1,17 @@
 # KIN HOME SOLAR CRM — SYSTEM BLUEPRINT
 
+> **Note:** This blueprint reflects the original design intent plus updates through
+> February 2026. For the current live database schema, see `docs/schema-reference.md`.
+> For system vision and current state, see `docs/kinos-vision-and-state.md`.
+> For planned future features, see `docs/kinos-future-features.md`.
+
 ## Platform: KinOS (Internal Codename)
+
 **Version:** 1.0 — February 2026
 **Author:** Lead Architect
-**Stack:** Next.js 14 (App Router) + Supabase (Postgres + Auth + Storage + Edge Functions) + Vercel
+**Stack:** Next.js 16 (App Router) + Supabase (Postgres + Auth + Storage) + Vercel
+**Status:** Epics 0–7 complete. Epic 8 (Financing) next.
+**Related Docs:** `docs/kinos-vision-and-state.md` (system overview), `docs/kinos-future-features.md` (planned features)
 
 ---
 
@@ -24,7 +32,7 @@
 13. Notifications (Twilio SMS + Email)
 14. Screen-by-Screen Specification
 15. API Route Architecture
-16. Sprint Plan & Build Order
+16. Build Status & Remaining Work
 
 ---
 
@@ -33,16 +41,20 @@
 KinOS replaces Enerflo as KIN Home's primary sales platform. It is the system of record for deals from the moment a RepCard appointment lands through design, financing, contracting, and submission to the Quickbase operations team.
 
 **What KinOS IS:**
+
 - The deal lifecycle management platform (appointment → submission)
 - The margin/pricing management layer
 - The configurable deal submission gating engine
-- The integration hub connecting RepCard, Aurora, lenders, doc signing, Quickbase, Sequifi, and Twilio
+- The integration hub connecting RepCard, Aurora, lenders, doc signing, Quickbase, Arrivy, Sequifi, and Twilio
+- The closer's post-sale visibility window (read from Quickbase, limited write-back actions)
 
 **What KinOS IS NOT:**
+
 - A canvassing tool (RepCard handles this)
 - A design tool (Aurora handles this)
-- A proposal generator (Aurora handles this)
-- An operations/project management tool (Quickbase handles this)
+- A proposal generator (Aurora handles this — KinOS displays results)
+- An operations/project management tool (Quickbase handles this — KinOS provides closer visibility)
+- A field service scheduler (Arrivy handles this — KinOS integrates for site survey scheduling)
 
 **Cost:** ~$40–150/month infrastructure vs. $7,000–15,000/month for Enerflo
 
@@ -53,7 +65,7 @@ KinOS replaces Enerflo as KIN Home's primary sales platform. It is the system of
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        FRONTEND                              │
-│              Next.js 14 App Router (Vercel)                  │
+│              Next.js 16 App Router (Vercel)                  │
 │    ┌──────┬──────┬───────┬──────┬──────┬──────┬───────┐     │
 │    │ Auth │ Dash │ Deals │Admin │ Docs │ Sub- │Portal │     │
 │    │      │board │       │Panel │ign   │ mit  │       │     │
@@ -74,7 +86,9 @@ KinOS replaces Enerflo as KIN Home's primary sales platform. It is the system of
 │  ┌────────┬────────┬─────────┬────────┬─────────┬────────┐  │
 │  │RepCard │Aurora  │Lender   │DocSign │Quick-   │Twilio  │  │
 │  │Webhooks│Solar   │APIs     │APIs    │base     │SMS     │  │
-│  │+ REST  │API     │(multi)  │(multi) │Push     │        │  │
+│  │+ REST  │API     │(multi)  │(multi) │(bidir)  │        │  │
+│  │        │        │         │        │Arrivy   │        │  │
+│  │        │        │         │        │(surveys)│        │  │
 │  └────────┴────────┴─────────┴────────┴─────────┴────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -212,6 +226,16 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_company ON users(company_id);
 CREATE INDEX idx_users_office ON users(office_id);
 CREATE INDEX idx_users_team ON users(team_id);
+
+-- ============================================================
+-- SCHEMA DRIFT NOTE (as of 2026-02-12):
+-- The live users table differs from this blueprint. The live schema
+-- uses: auth_id, status ('invited'/'active'/'deactivated'), invited_at,
+-- activated_at, deactivated_at, image_url, bio, license_state, license_expiry.
+-- Missing from live (tracked for future migration):
+--   kin_id, job_title, sequifi_id, captiveiq_id, quickbase_record_id, repcard_username
+-- See docs/schema-reference.md for the authoritative live schema.
+-- ============================================================
 ```
 
 ### 3.2 Lead & Deal Tables
@@ -446,7 +470,7 @@ CREATE TABLE deal_adders (
 
 ### 3.3 Financing & Lender Tables
 
-```sql
+````sql
 -- ============================================================
 -- LENDERS
 -- ============================================================
@@ -798,7 +822,7 @@ CREATE TABLE deal_adders (
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
-```
+````
 
 ### 3.5 Financing & Lender Tables (Expanded)
 
@@ -1169,6 +1193,7 @@ There is NO self-registration. KinOS is an internal company tool. Users get acce
 through one of these paths:
 
 **Path A: Admin Creates Account (Primary)**
+
 1. Admin (or manager) goes to Admin Panel → Users → "Add User"
 2. Enters first name, last name, email, phone, office, team, role
 3. System creates Supabase Auth account + KinOS user record
@@ -1176,6 +1201,7 @@ through one of these paths:
 5. On first login, user sets password and is active
 
 **Path B: Auto-Provisioned from KIN Onboarding Platform (Future)**
+
 1. New rep completes onboarding on KIN's onboarding platform
 2. Onboarding platform assigns KIN ID
 3. Onboarding platform calls KinOS API to create user account
@@ -1183,6 +1209,7 @@ through one of these paths:
 5. KIN ID is stored on user record, pushed to RepCard externalId
 
 **Path C: Bulk Import (Initial Migration)**
+
 1. Admin uploads CSV of existing users
 2. System creates accounts in batch
 3. All users receive email invites
@@ -1217,6 +1244,7 @@ States:
 ```
 
 Deactivation/removal mirrors RepCard's model:
+
 - When a user is deactivated in KinOS, optionally deactivate in RepCard via API
 - When removing a user, admin must reassign their contacts and deals (same as RepCard's
   "Remove User" flow which requires assignContact, leadToUser, customerToUser, etc.)
@@ -1224,11 +1252,13 @@ Deactivation/removal mirrors RepCard's model:
 ### 4.4 Account Management (Admin Panel → Users)
 
 **User List View:**
+
 - Filterable by office, team, role, status (active/inactive)
 - Search by name, email, KIN ID
 - Bulk actions: activate, deactivate, change office/team
 
 **User Detail / Edit:**
+
 - Personal info: name, email, phone, avatar
 - Company info: office, team, role, job title
 - External IDs: KIN ID, RepCard user ID, RepCard badge, Sequifi ID (read-only display)
@@ -1237,6 +1267,7 @@ Deactivation/removal mirrors RepCard's model:
 - Activity: recent login, deal count, last activity
 
 **User Creation Form:**
+
 - First name, last name (required)
 - Email (required, must be unique)
 - Phone + country code (required)
@@ -1412,6 +1443,7 @@ CREATE POLICY "proposal_access" ON proposals
 ```
 
 **Proposal Finalization Guards (Application-Level):**
+
 ```typescript
 async function finalizeProposal(proposalId: string, userId: string) {
   const proposal = await getProposalWithDeal(proposalId);
@@ -1420,7 +1452,7 @@ async function finalizeProposal(proposalId: string, userId: string) {
 
   // 1. Only assigned closer can finalize (or admin override)
   if (deal.closer_id !== userId && !user.role.isAdmin) {
-    throw new ForbiddenError('Only the assigned closer can finalize proposals');
+    throw new ForbiddenError("Only the assigned closer can finalize proposals");
   }
 
   // 2. Check rep is credentialed with the selected lender
@@ -1429,30 +1461,30 @@ async function finalizeProposal(proposalId: string, userId: string) {
     if (!cred?.is_verified) {
       throw new ValidationError(
         `You are not verified to sell ${proposal.financing_method}. ` +
-        `Contact your admin to get credentialed.`
+          `Contact your admin to get credentialed.`,
       );
     }
   }
 
   // 3. Validate proposal is complete
-  validateProposalComplete(proposal);  // design, pricing, lender selected
+  validateProposalComplete(proposal); // design, pricing, lender selected
 
   // 4. Supersede any previously finalized proposal on this deal
   await supersedePreviousProposals(deal.id);
 
   // 5. Finalize
   await updateProposal(proposalId, {
-    status: 'finalized',
+    status: "finalized",
     finalized_at: new Date(),
     finalized_by: userId,
-    rep_lender_verified: true
+    rep_lender_verified: true,
   });
 
   // 6. Sync pricing to Aurora (so proposal/financing is accurate)
   await syncPricingToAurora(deal.id);
 
   // 7. Advance deal workflow
-  await completeWorkflowStep(deal.id, 'proposal');
+  await completeWorkflowStep(deal.id, "proposal");
 }
 ```
 
@@ -1460,51 +1492,54 @@ async function finalizeProposal(proposalId: string, userId: string) {
 
 **Deal-Level Permissions (per-deal, based on assignment):**
 
-| Permission | Setter (on their deal) | Closer (on their deal) | Manager (office deals) | Admin | Owner |
-|-----------|----------------------|----------------------|----------------------|-------|-------|
-| View deal | ✅ read-only | ✅ | ✅ read-only | ✅ | ✅ |
-| Edit deal details | ❌ | ✅ | ❌ | ✅ override | ✅ override |
-| Create/edit proposals | ❌ | ✅ | ❌ | ✅ override | ✅ override |
-| Finalize proposal | ❌ | ✅ | ❌ | ✅ override | ✅ override |
-| Submit financing | ❌ | ✅ | ❌ | ✅ override | ✅ override |
-| Send contracts | ❌ | ✅ | ❌ | ✅ override | ✅ override |
-| Submit to intake | ❌ | ✅ | ❌ | ✅ override | ✅ override |
-| Request design | ❌ | ✅ | ❌ | ✅ | ✅ |
-| Self-design (Aurora) | ❌ | ✅ | ❌ | ✅ | ✅ |
-| Reassign deal | ❌ | ❌ | ❌ | ✅ | ✅ |
-| View unassigned deals | ❌ | ❌ | ✅ office only | ✅ | ✅ |
+| Permission            | Setter (on their deal) | Closer (on their deal) | Manager (office deals) | Admin       | Owner       |
+| --------------------- | ---------------------- | ---------------------- | ---------------------- | ----------- | ----------- |
+| View deal             | ✅ read-only           | ✅                     | ✅ read-only           | ✅          | ✅          |
+| Edit deal details     | ❌                     | ✅                     | ❌                     | ✅ override | ✅ override |
+| Create/edit proposals | ❌                     | ✅                     | ❌                     | ✅ override | ✅ override |
+| Finalize proposal     | ❌                     | ✅                     | ❌                     | ✅ override | ✅ override |
+| Submit financing      | ❌                     | ✅                     | ❌                     | ✅ override | ✅ override |
+| Send contracts        | ❌                     | ✅                     | ❌                     | ✅ override | ✅ override |
+| Submit to intake      | ❌                     | ✅                     | ❌                     | ✅ override | ✅ override |
+| Request design        | ❌                     | ✅                     | ❌                     | ✅          | ✅          |
+| Self-design (Aurora)  | ❌                     | ✅                     | ❌                     | ✅          | ✅          |
+| Reassign deal         | ❌                     | ❌                     | ❌                     | ✅          | ✅          |
+| View unassigned deals | ❌                     | ❌                     | ✅ office only         | ✅          | ✅          |
 
 **System-Level Permissions (not deal-specific):**
 
-| Permission | Setter | Closer | Manager | Admin | Owner |
-|-----------|--------|--------|---------|-------|-------|
-| Configure pricing | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Manage adder rules | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Manage gates | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Manage users | ❌ | ❌ | ✅* | ✅ | ✅ |
-| Manage lenders | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Manage equipment | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Manage rep-lender creds | ❌ | ❌ | ✅* | ✅ | ✅ |
-| View reports | ❌ | ❌ | ✅ | ✅ | ✅ |
-| Manage company | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Permission              | Setter | Closer | Manager | Admin | Owner |
+| ----------------------- | ------ | ------ | ------- | ----- | ----- |
+| Configure pricing       | ❌     | ❌     | ❌      | ✅    | ✅    |
+| Manage adder rules      | ❌     | ❌     | ❌      | ✅    | ✅    |
+| Manage gates            | ❌     | ❌     | ❌      | ✅    | ✅    |
+| Manage users            | ❌     | ❌     | ✅\*    | ✅    | ✅    |
+| Manage lenders          | ❌     | ❌     | ❌      | ✅    | ✅    |
+| Manage equipment        | ❌     | ❌     | ❌      | ✅    | ✅    |
+| Manage rep-lender creds | ❌     | ❌     | ✅\*    | ✅    | ✅    |
+| View reports            | ❌     | ❌     | ✅      | ✅    | ✅    |
+| Manage company          | ❌     | ❌     | ❌      | ❌    | ✅    |
 
-*Managers can manage users and credentials within their own office only.
+\*Managers can manage users and credentials within their own office only.
 
 ### 4.7 Lender Configuration (Admin Panel → Lenders)
 
 Admins configure which lenders are available and how pricing works:
 
 **Lender List:**
+
 - Active lenders with status indicators
 - Toggle lender on/off without deleting configuration
 - Display order (controls how lenders appear in deal financing tab)
 
 **Lender Detail / Edit:**
+
 - Name, logo, lender type (loan/tpo/ppa/lease/cash)
 - API credentials (encrypted, masked display)
 - API base URL and provider class
 
 **Lender Products (nested under lender):**
+
 - Product name, code, term, rates
 - Dealer fee percentage (what lender charges)
 - KIN markup percentage (KIN's margin on top)
@@ -1531,36 +1566,36 @@ Single endpoint handles all 7 RepCard webhook events:
 // app/api/webhooks/repcard/route.ts
 
 type RepCardWebhookEvent =
-  | 'appointment_set'
-  | 'appointment_update'
-  | 'appointment_outcome'
-  | 'closer_update'
-  | 'door_knocked'
-  | 'contact_type_changed'
-  | 'status_changed';
+  | "appointment_set"
+  | "appointment_update"
+  | "appointment_outcome"
+  | "closer_update"
+  | "door_knocked"
+  | "contact_type_changed"
+  | "status_changed";
 
 export async function POST(req: Request) {
   const payload = await req.json();
   const eventType = identifyEventType(payload);
 
   // 1. Log raw webhook
-  await logWebhookEvent('repcard', eventType, payload);
+  await logWebhookEvent("repcard", eventType, payload);
 
   // 2. Route to handler
   switch (eventType) {
-    case 'appointment_set':
+    case "appointment_set":
       return handleAppointmentSet(payload);
-    case 'appointment_update':
+    case "appointment_update":
       return handleAppointmentUpdate(payload);
-    case 'appointment_outcome':
+    case "appointment_outcome":
       return handleAppointmentOutcome(payload);
-    case 'closer_update':
+    case "closer_update":
       return handleCloserUpdate(payload);
-    case 'status_changed':
+    case "status_changed":
       return handleStatusChanged(payload);
-    case 'contact_type_changed':
+    case "contact_type_changed":
       return handleContactTypeChanged(payload);
-    case 'door_knocked':
+    case "door_knocked":
       return handleDoorKnocked(payload);
   }
 }
@@ -1573,10 +1608,10 @@ This is the most critical handler — it creates deals from RepCard appointments
 ```typescript
 async function handleAppointmentSet(payload: RepCardAppointmentPayload) {
   // 1. Resolve or create SETTER
-  const setter = await upsertUserFromRepCard(payload.user, 'setter');
+  const setter = await upsertUserFromRepCard(payload.user, "setter");
 
   // 2. Resolve or create CLOSER
-  const closer = await upsertUserFromRepCard(payload.closer, 'closer');
+  const closer = await upsertUserFromRepCard(payload.closer, "closer");
 
   // 3. Resolve or create CONTACT
   const contact = await upsertContact({
@@ -1594,7 +1629,7 @@ async function handleAppointmentSet(payload: RepCardAppointmentPayload) {
     notes: payload.contact.notes,
     setter_id: setter.id,
     repcard_status: payload.contact.status,
-    contact_source: 'RepCard'
+    contact_source: "RepCard",
   });
 
   // 4. Create DEAL
@@ -1604,7 +1639,7 @@ async function handleAppointmentSet(payload: RepCardAppointmentPayload) {
     closer_id: closer.id,
     office_id: await resolveOffice(payload.closer.location),
     team_id: await resolveTeam(payload.closer.team),
-    stage: 'appointment_set',
+    stage: "appointment_set",
     repcard_appointment_id: payload.id,
     appointment_date: parseAppointmentTime(payload),
     appointment_end: parseAppointmentEndTime(payload),
@@ -1617,13 +1652,13 @@ async function handleAppointmentSet(payload: RepCardAppointmentPayload) {
     net_price: payload.contact.net_price,
     gross_ppw: payload.contact.gross_ppw,
     net_ppw: payload.contact.net_ppw,
-    source: 'repcard'
+    source: "repcard",
   });
 
   // 5. Ingest ATTACHMENTS (utility bills, photos)
   if (payload.appointment_attachment?.length > 0) {
     for (const url of payload.appointment_attachment) {
-      await ingestAttachmentFromUrl(url, deal.id, 'deal', 'repcard');
+      await ingestAttachmentFromUrl(url, deal.id, "deal", "repcard");
     }
   }
 
@@ -1631,15 +1666,19 @@ async function handleAppointmentSet(payload: RepCardAppointmentPayload) {
   await initializeGatesForDeal(deal.id);
 
   // 7. Create ACTIVITY log entry
-  await createActivity(deal.id, 'deal_created',
-    'New deal created from RepCard appointment',
-    { setter: setter.name, closer: closer.name }
+  await createActivity(
+    deal.id,
+    "deal_created",
+    "New deal created from RepCard appointment",
+    { setter: setter.name, closer: closer.name },
   );
 
   // 8. Send NOTIFICATION to closer
-  await notifyUser(closer.id, 'new_appointment',
+  await notifyUser(
+    closer.id,
+    "new_appointment",
     `New appointment: ${contact.first_name} ${contact.last_name}`,
-    `${payload.appt_start_time_local_pretty} at ${payload.appointment_location}`
+    `${payload.appt_start_time_local_pretty} at ${payload.appointment_location}`,
   );
 
   // 9. Trigger SMS via Twilio (if configured)
@@ -1651,61 +1690,63 @@ async function handleAppointmentSet(payload: RepCardAppointmentPayload) {
 
 ### 5.3 RepCard Field Mapping (Webhook → Database)
 
-| RepCard Webhook Field | KinOS Table | KinOS Column |
-|---|---|---|
-| `id` | deals | repcard_appointment_id |
-| `contact.id` | contacts | repcard_contact_id |
-| `contact.firstName` | contacts | first_name |
-| `contact.lastName` | contacts | last_name |
-| `contact.email` | contacts | email |
-| `contact.phoneNumber` | contacts | phone |
-| `contact.address` | contacts | address |
-| `contact.city` | contacts | city |
-| `contact.state` | contacts | state |
-| `contact.zip` | contacts | zip |
-| `contact.latitude` | contacts | latitude |
-| `contact.longitude` | contacts | longitude |
-| `contact.notes` | contacts | notes |
-| `contact.status` | contacts | repcard_status |
-| `contact.both_spouses_present` | deals | both_spouses_present |
-| `contact.system_size_kw` | deals | system_size_kw |
-| `contact.gross_price` | deals | gross_price |
-| `contact.net_price` | deals | net_price |
-| `contact.gross_ppw` | deals | gross_ppw |
-| `contact.net_ppw` | deals | net_ppw |
-| `contact.qb_record_id` | contacts | quickbase_record_id |
-| `contact.owner.id` | contacts → setter_id | (resolved via repcard_user_id) |
-| `user.id` | users | repcard_user_id (setter) |
-| `user.firstName/lastName` | users | first_name/last_name |
-| `user.email` | users | email |
-| `user.role` | users → role_id | (resolved via role name) |
-| `user.location` | users → office_id | (resolved via office name) |
-| `user.team` | users → team_id | (resolved via team name) |
-| `user.badgeNo` | users | repcard_badge_no |
-| `closer.id` | users | repcard_user_id (closer) |
-| `closer.*` | users | (same pattern as user) |
-| `appointment_location` | deals | appointment_location |
-| `appt_start_time_local` | deals | appointment_date |
-| `appt_end_time_local` | deals | appointment_end |
-| `start_at_timezone` | deals | appointment_timezone |
-| `notes` | deals | appointment_notes |
-| `appointment_attachment[]` | attachments | source_url |
-| `appointment_status_id` | deals | appointment_outcome_id |
-| `appointment_status_title` | deals | appointment_outcome |
+| RepCard Webhook Field          | KinOS Table          | KinOS Column                   |
+| ------------------------------ | -------------------- | ------------------------------ |
+| `id`                           | deals                | repcard_appointment_id         |
+| `contact.id`                   | contacts             | repcard_contact_id             |
+| `contact.firstName`            | contacts             | first_name                     |
+| `contact.lastName`             | contacts             | last_name                      |
+| `contact.email`                | contacts             | email                          |
+| `contact.phoneNumber`          | contacts             | phone                          |
+| `contact.address`              | contacts             | address                        |
+| `contact.city`                 | contacts             | city                           |
+| `contact.state`                | contacts             | state                          |
+| `contact.zip`                  | contacts             | zip                            |
+| `contact.latitude`             | contacts             | latitude                       |
+| `contact.longitude`            | contacts             | longitude                      |
+| `contact.notes`                | contacts             | notes                          |
+| `contact.status`               | contacts             | repcard_status                 |
+| `contact.both_spouses_present` | deals                | both_spouses_present           |
+| `contact.system_size_kw`       | deals                | system_size_kw                 |
+| `contact.gross_price`          | deals                | gross_price                    |
+| `contact.net_price`            | deals                | net_price                      |
+| `contact.gross_ppw`            | deals                | gross_ppw                      |
+| `contact.net_ppw`              | deals                | net_ppw                        |
+| `contact.qb_record_id`         | contacts             | quickbase_record_id            |
+| `contact.owner.id`             | contacts → setter_id | (resolved via repcard_user_id) |
+| `user.id`                      | users                | repcard_user_id (setter)       |
+| `user.firstName/lastName`      | users                | first_name/last_name           |
+| `user.email`                   | users                | email                          |
+| `user.role`                    | users → role_id      | (resolved via role name)       |
+| `user.location`                | users → office_id    | (resolved via office name)     |
+| `user.team`                    | users → team_id      | (resolved via team name)       |
+| `user.badgeNo`                 | users                | repcard_badge_no               |
+| `closer.id`                    | users                | repcard_user_id (closer)       |
+| `closer.*`                     | users                | (same pattern as user)         |
+| `appointment_location`         | deals                | appointment_location           |
+| `appt_start_time_local`        | deals                | appointment_date               |
+| `appt_end_time_local`          | deals                | appointment_end                |
+| `start_at_timezone`            | deals                | appointment_timezone           |
+| `notes`                        | deals                | appointment_notes              |
+| `appointment_attachment[]`     | attachments          | source_url                     |
+| `appointment_status_id`        | deals                | appointment_outcome_id         |
+| `appointment_status_title`     | deals                | appointment_outcome            |
 
 ### 5.4 Two-Way Sync Operations
 
 **KinOS → RepCard (write-back):**
+
 - Update appointment outcome: `POST /api/appointments/set-outcome`
 - Update customer status: via Customer Status API
 - Sync KIN ID to RepCard user `externalId`: `PUT /api/users/{id}`
 
 **RepCard → KinOS (inbound webhooks):**
+
 - All 7 webhook events listed above
 
 ---
 
-## 6. AURORA SOLAR INTEGRATION
+## 6. AURORA SOLAR INTEGRATION (✅ COMPLETE — Epic 6)
 
 ### 6.1 Integration Strategy: Fully Automated, No Iframe
 
@@ -1734,6 +1775,7 @@ KINOS (Automated):
 ```
 
 **What each role sees:**
+
 - **Closer:** Everything in KinOS. Design outputs (system size, production, pricing,
   panel layout image) displayed directly on the deal detail page. One-click "Open in
   Aurora" button only for presenting the interactive 3D proposal to homeowners.
@@ -1744,19 +1786,19 @@ KINOS (Automated):
 
 ### 6.2 Key Aurora API Endpoints
 
-| Action | Method | Endpoint | When |
-|--------|--------|----------|------|
-| Create project | POST | /tenants/{tid}/projects | Closer clicks "Request Design" |
-| Create consumption profile | POST | /tenants/{tid}/projects/{pid}/consumption_profiles | With project creation (utility data) |
-| Create design request | POST | /tenants/{tid}/projects/{pid}/design_requests | After consumption profile |
-| Get designs | GET | /tenants/{tid}/projects/{pid}/designs | On webhook or poll |
-| Get design summary | GET | /tenants/{tid}/designs/{did}/summary | After design complete |
-| Get design assets | GET | /tenants/{tid}/designs/{did}/assets | Pull panel layout image |
-| Get pricing | GET | /tenants/{tid}/projects/{pid}/designs/{did}/pricing | After design complete |
-| Get financings | GET | /tenants/{tid}/projects/{pid}/financings | After pricing configured |
-| Get agreements | GET | /tenants/{tid}/projects/{pid}/agreements | After proposal sent |
-| Get project web proposal | GET | /tenants/{tid}/projects/{pid}/web_proposals | Generate shareable proposal URL |
-| Webhooks | — | Configured in Aurora | design_complete, proposal_accepted, agreement_signed |
+| Action                     | Method | Endpoint                                            | When                                                 |
+| -------------------------- | ------ | --------------------------------------------------- | ---------------------------------------------------- |
+| Create project             | POST   | /tenants/{tid}/projects                             | Closer clicks "Request Design"                       |
+| Create consumption profile | POST   | /tenants/{tid}/projects/{pid}/consumption_profiles  | With project creation (utility data)                 |
+| Create design request      | POST   | /tenants/{tid}/projects/{pid}/design_requests       | After consumption profile                            |
+| Get designs                | GET    | /tenants/{tid}/projects/{pid}/designs               | On webhook or poll                                   |
+| Get design summary         | GET    | /tenants/{tid}/designs/{did}/summary                | After design complete                                |
+| Get design assets          | GET    | /tenants/{tid}/designs/{did}/assets                 | Pull panel layout image                              |
+| Get pricing                | GET    | /tenants/{tid}/projects/{pid}/designs/{did}/pricing | After design complete                                |
+| Get financings             | GET    | /tenants/{tid}/projects/{pid}/financings            | After pricing configured                             |
+| Get agreements             | GET    | /tenants/{tid}/projects/{pid}/agreements            | After proposal sent                                  |
+| Get project web proposal   | GET    | /tenants/{tid}/projects/{pid}/web_proposals         | Generate shareable proposal URL                      |
+| Webhooks                   | —      | Configured in Aurora                                | design_complete, proposal_accepted, agreement_signed |
 
 ### 6.3 Aurora Project Auto-Creation (on "Request Design")
 
@@ -1782,34 +1824,36 @@ async function requestDesign(dealId: string, requestedBy: string) {
       latitude: contact.latitude,
       longitude: contact.longitude,
     },
-    external_provider_id: deal.id,  // Links Aurora project back to KinOS deal
+    external_provider_id: deal.id, // Links Aurora project back to KinOS deal
   });
 
   // 2. Create consumption profile (if we have utility data)
   if (deal.annual_usage_kwh) {
     await auroraApi.post(
       `/tenants/${TENANT_ID}/projects/${project.id}/consumption_profiles`,
-      { annual_usage_kwh: deal.annual_usage_kwh }
+      { annual_usage_kwh: deal.annual_usage_kwh },
     );
   }
 
   // 3. Submit design request (puts it in design team's queue)
   await auroraApi.post(
     `/tenants/${TENANT_ID}/projects/${project.id}/design_requests`,
-    { notes: deal.appointment_notes || '' }
+    { notes: deal.appointment_notes || "" },
   );
 
   // 4. Update deal with Aurora IDs and advance stage
   await updateDeal(deal.id, {
     aurora_project_id: project.id,
-    stage: 'design_requested',
-    stage_changed_at: new Date()
+    stage: "design_requested",
+    stage_changed_at: new Date(),
   });
 
   // 5. Log activity
-  await createActivity(deal.id, 'design_requested',
-    'Design requested — Aurora project created automatically',
-    { aurora_project_id: project.id, requested_by: requestedBy }
+  await createActivity(
+    deal.id,
+    "design_requested",
+    "Design requested — Aurora project created automatically",
+    { aurora_project_id: project.id, requested_by: requestedBy },
   );
 
   return project;
@@ -1828,13 +1872,13 @@ async function handleAuroraDesignComplete(payload: AuroraWebhookPayload) {
 
   // 2. Pull full design data from Aurora API
   const design = await auroraApi.get(
-    `/tenants/${TENANT_ID}/designs/${design_id}/summary`
+    `/tenants/${TENANT_ID}/designs/${design_id}/summary`,
   );
   const pricing = await auroraApi.get(
-    `/tenants/${TENANT_ID}/projects/${project_id}/designs/${design_id}/pricing`
+    `/tenants/${TENANT_ID}/projects/${project_id}/designs/${design_id}/pricing`,
   );
   const assets = await auroraApi.get(
-    `/tenants/${TENANT_ID}/designs/${design_id}/assets`
+    `/tenants/${TENANT_ID}/designs/${design_id}/assets`,
   );
 
   // 3. Update deal with design outputs
@@ -1846,37 +1890,45 @@ async function handleAuroraDesignComplete(payload: AuroraWebhookPayload) {
     inverter_model: design.inverter_model,
     annual_production_kwh: design.annual_production_kwh,
     offset_percentage: design.offset_percentage,
-    stage: 'design_complete',
-    stage_changed_at: new Date()
+    stage: "design_complete",
+    stage_changed_at: new Date(),
   });
 
   // 4. Store panel layout image as attachment
   if (assets?.layout_image_url) {
     await ingestAttachmentFromUrl(
-      assets.layout_image_url, deal.id, 'deal', 'aurora'
+      assets.layout_image_url,
+      deal.id,
+      "deal",
+      "aurora",
     );
   }
 
   // 5. Notify closer
-  await notifyUser(deal.closer_id, 'design_complete',
+  await notifyUser(
+    deal.closer_id,
+    "design_complete",
     `Design complete for ${deal.contact.first_name} ${deal.contact.last_name}`,
-    `${design.system_size_kw} kW system — ready for proposal`
+    `${design.system_size_kw} kW system — ready for proposal`,
   );
 
   // 6. Log activity
-  await createActivity(deal.id, 'design_complete',
+  await createActivity(
+    deal.id,
+    "design_complete",
     `Design complete: ${design.system_size_kw} kW, ${design.module_count} panels`,
-    { design_id, system_size_kw: design.system_size_kw }
+    { design_id, system_size_kw: design.system_size_kw },
   );
 }
 ```
 
-### 6.5 Dual Design Path: Team Design vs. Self-Design
+### 6.5 Three Design Paths
 
-KinOS supports two paths to a completed design. Both use the same automated return
-path — Aurora webhook fires, KinOS pulls data back via API, deal auto-updates.
+KinOS supports three paths to a completed design. All three use the same automated
+return path — Aurora webhook fires, KinOS pulls data back via API, deal auto-updates.
 
 **Path A: Request Design (Design Team)**
+
 ```
 Closer clicks "Request Design" in KinOS
   → KinOS auto-creates Aurora project via API (customer data pre-filled)
@@ -1886,6 +1938,7 @@ Closer clicks "Request Design" in KinOS
 ```
 
 **Path B: Self-Design (Closer does it themselves)**
+
 ```
 Closer clicks "Self Design" in KinOS
   → KinOS auto-creates Aurora project via API (customer data pre-filled) if not already created
@@ -1896,9 +1949,27 @@ Closer clicks "Self Design" in KinOS
   → Aurora webhook → KinOS pulls results → deal advances to "Design Complete"
 ```
 
+**Path C: Expert Design (Aurora's Design Team)**
+
+```
+Closer clicks "Expert Design" in KinOS
+  → KinOS creates Aurora project (if not exists) + design request with expert flag
+  → Aurora's professional design team picks it up
+  → Expert designers build optimized design in Aurora
+  → Aurora webhook → KinOS pulls results → deal advances
+```
+
+This path is for complex projects (commercial, ground mount, heavy shading) where
+the in-house team may not have the expertise.
+
 **Implementation:**
+
 ```typescript
-async function handleDesignAction(dealId: string, action: 'request' | 'self', userId: string) {
+async function handleDesignAction(
+  dealId: string,
+  action: "request" | "self",
+  userId: string,
+) {
   const deal = await getDealWithContact(dealId);
 
   // Create Aurora project if it doesn't exist yet
@@ -1908,29 +1979,35 @@ async function handleDesignAction(dealId: string, action: 'request' | 'self', us
     auroraProjectId = project.id;
   }
 
-  if (action === 'request') {
+  if (action === "request") {
     // Path A: Submit design request to team queue
     await auroraApi.post(
       `/tenants/${TENANT_ID}/projects/${auroraProjectId}/design_requests`,
-      { notes: deal.appointment_notes || '' }
+      { notes: deal.appointment_notes || "" },
     );
-    await updateDeal(deal.id, { stage: 'design_requested' });
-    await createActivity(deal.id, 'design_requested',
-      'Design requested — sent to design team queue');
-
-  } else if (action === 'self') {
+    await updateDeal(deal.id, { stage: "design_requested" });
+    await createActivity(
+      deal.id,
+      "design_requested",
+      "Design requested — sent to design team queue",
+    );
+  } else if (action === "self") {
     // Path B: Return deep link for closer to open Aurora directly
-    await updateDeal(deal.id, { stage: 'design_requested' });
-    await createActivity(deal.id, 'self_design_started',
-      'Self-design started — closer building in Aurora');
+    await updateDeal(deal.id, { stage: "design_requested" });
+    await createActivity(
+      deal.id,
+      "self_design_started",
+      "Self-design started — closer building in Aurora",
+    );
     return {
-      aurora_url: `https://app.aurorasolar.com/projects/${auroraProjectId}/design`
+      aurora_url: `https://app.aurorasolar.com/projects/${auroraProjectId}/design`,
     };
   }
 }
 ```
 
 **Deal Detail Design Tab — Actions:**
+
 - "Request Design" → sends to design team (Path A)
 - "Self Design" → opens Aurora directly for closer to build (Path B)
 - "Open in Aurora" → deep link to existing project (view/edit/present)
@@ -1950,7 +2027,8 @@ The deal detail page Design tab shows all Aurora outputs WITHOUT requiring Auror
 The closer's entire workflow stays inside KinOS. Aurora is only opened when the closer
 wants to self-design, present the interactive 3D proposal to homeowners, or make
 design changes.
-```
+
+````
 
 ### 6.7 KinOS → Aurora Pricing & Adder Sync
 
@@ -2034,9 +2112,10 @@ async function syncPricingToAurora(dealId: string) {
     status: 'success'
   });
 }
-```
+````
 
 **When Sync Happens:**
+
 - After design complete webhook (auto)
 - After admin changes pricing config that affects active deals (batch)
 - After closer modifies deal adders in KinOS (on save)
@@ -2067,6 +2146,10 @@ recorded on the financing application record for accounting.
 │  • Component specs/sheets        • Price per component       │
 │  • Automatic adders based          overrides by market       │
 │    on equipment (design)                                     │
+│                                  • Equipment admin page      │
+│  API: Read from KinOS to          (mirrors Aurora catalog    │
+│  display specs + sync              with business logic)      │
+│  catalog periodically                                        │
 │                                                              │
 │  WHY: Aurora has 10,000+         WHY: Aurora can't scope     │
 │  component models. We don't      equipment to markets.       │
@@ -2106,20 +2189,20 @@ produces identical numbers. The waterfall can be made configurable later if need
 **Pricing Waterfall (matches Enerflo's Default Model output):**
 
 ```typescript
-import Big from 'big.js';
+import Big from "big.js";
 
 interface PricingInputs {
   systemSizeWatts: Big;
   basePPW: Big;
-  basePPWAdjustments: Big[];         // Market/team PPW adjustments
-  equipment: CalculatedEquipment[];   // Modules, inverters, batteries (priced)
-  systemAdders: CalculatedAdder[];    // Auto-applied adders (KinOS rules engine)
-  valueAdders: CalculatedAdder[];     // Rep-selected adders
+  basePPWAdjustments: Big[]; // Market/team PPW adjustments
+  equipment: CalculatedEquipment[]; // Modules, inverters, batteries (priced)
+  systemAdders: CalculatedAdder[]; // Auto-applied adders (KinOS rules engine)
+  valueAdders: CalculatedAdder[]; // Rep-selected adders
   discounts: CalculatedDiscount[];
   rebates: CalculatedRebate[];
-  dealerFeePercent: Big;              // Sales-facing dealer fee (includes KIN margin)
+  dealerFeePercent: Big; // Sales-facing dealer fee (includes KIN margin)
   downPayment: Big;
-  taxRate: Big;                       // State-specific sales tax rate
+  taxRate: Big; // State-specific sales tax rate
   financeProduct: FinanceProduct;
   stateCode: string;
   rounding: { scale: number; mode: number };
@@ -2127,12 +2210,12 @@ interface PricingInputs {
 
 interface PricingOutput {
   // Core waterfall
-  basePPW: Big;                       // Adjusted base PPW
-  baseCost: Big;                      // systemSizeWatts × basePPW
-  equipmentTotal: Big;                // Sum of priced equipment
-  systemAddersTotal: Big;             // Sum of system adders
-  valueAddersTotal: Big;              // Sum of value adders
-  addersAndEquipmentTotal: Big;       // equipment + systemAdders + valueAdders
+  basePPW: Big; // Adjusted base PPW
+  baseCost: Big; // systemSizeWatts × basePPW
+  equipmentTotal: Big; // Sum of priced equipment
+  systemAddersTotal: Big; // Sum of system adders
+  valueAddersTotal: Big; // Sum of value adders
+  addersAndEquipmentTotal: Big; // equipment + systemAdders + valueAdders
   baseCostWithAddersAndEquipment: Big; // baseCost + addersAndEquipmentTotal
 
   // Tax layer
@@ -2142,21 +2225,21 @@ interface PricingOutput {
   // Dealer fee layer (gross-up for positive fees, discount for negative)
   dealerFeeFactor: Big;
   dealerFee: Big;
-  baseCostWithDealerFees: Big;        // After gross-up
+  baseCostWithDealerFees: Big; // After gross-up
 
   // Discount layer
   discountsTotal: Big;
-  grossCostBeforeRebates: Big;        // After dealer fees, before rebates
+  grossCostBeforeRebates: Big; // After dealer fees, before rebates
 
   // Rebate layer
   rebatesReducingGross: Big;
-  grossCost: Big;                     // grossCostBeforeRebates - rebatesReducingGross
-  rebatesReducingNet: Big;            // Including Federal ITC
+  grossCost: Big; // grossCostBeforeRebates - rebatesReducingGross
+  rebatesReducingNet: Big; // Including Federal ITC
   federalRebateTotal: Big;
 
   // Finance layer
-  financeCost: Big;                   // grossCost - downPayment + lender adjustments
-  netCost: Big;                       // financeCost - rebatesReducingNet
+  financeCost: Big; // grossCost - downPayment + lender adjustments
+  netCost: Big; // financeCost - rebatesReducingNet
 
   // PPW variants (all = value / systemSizeWatts)
   baseCostPPW: Big;
@@ -2165,7 +2248,7 @@ interface PricingOutput {
   netPPW: Big;
 
   // Commission
-  commissionBase: Big;                // grossCostBeforeRebates - dealerFee
+  commissionBase: Big; // grossCostBeforeRebates - dealerFee
   commissionBasePPW: Big;
 
   // Itemized breakdowns
@@ -2182,7 +2265,8 @@ function calculatePricing(inputs: PricingInputs): PricingOutput {
 
   // 1. Base PPW (with adjustments for market/team)
   const basePPW = inputs.basePPWAdjustments.reduce(
-    (sum, adj) => sum.plus(adj), inputs.basePPW
+    (sum, adj) => sum.plus(adj),
+    inputs.basePPW,
   );
 
   // 2. Base Cost
@@ -2193,7 +2277,8 @@ function calculatePricing(inputs: PricingInputs): PricingOutput {
   const systemAddersTotal = sumAmounts(inputs.systemAdders);
   const valueAddersTotal = sumAmounts(inputs.valueAdders);
   const addersAndEquipmentTotal = equipmentTotal
-    .plus(systemAddersTotal).plus(valueAddersTotal);
+    .plus(systemAddersTotal)
+    .plus(valueAddersTotal);
   const baseCostWithAddersAndEquipment = baseCost.plus(addersAndEquipmentTotal);
 
   // 4. Taxes (state-specific)
@@ -2206,10 +2291,10 @@ function calculatePricing(inputs: PricingInputs): PricingOutput {
 
   // Gross up base + adders + equipment + tax
   const baseCostWithDealerFees = round(
-    baseCostWithAddersAndEquipment.plus(taxTotal).div(dealerFeeFactor)
+    baseCostWithAddersAndEquipment.plus(taxTotal).div(dealerFeeFactor),
   );
   const dealerFee = baseCostWithDealerFees.minus(
-    baseCostWithAddersAndEquipment.plus(taxTotal)
+    baseCostWithAddersAndEquipment.plus(taxTotal),
   );
 
   // 6. Discounts
@@ -2217,39 +2302,62 @@ function calculatePricing(inputs: PricingInputs): PricingOutput {
   const grossCostBeforeRebates = baseCostWithDealerFees.minus(discountsTotal);
 
   // 7. Rebates
-  const rebatesReducingGross = sumRebatesByType(inputs.rebates, 'reducesGross');
+  const rebatesReducingGross = sumRebatesByType(inputs.rebates, "reducesGross");
   const grossCost = grossCostBeforeRebates.minus(rebatesReducingGross);
-  const federalRebateTotal = calculateFederalITC(grossCostBeforeRebates, inputs.rebates);
-  const rebatesReducingNet = sumRebatesByType(inputs.rebates, 'reducesNet')
-    .plus(federalRebateTotal);
+  const federalRebateTotal = calculateFederalITC(
+    grossCostBeforeRebates,
+    inputs.rebates,
+  );
+  const rebatesReducingNet = sumRebatesByType(
+    inputs.rebates,
+    "reducesNet",
+  ).plus(federalRebateTotal);
 
   // 8. Finance Cost (with lender-specific adjustments)
   let financeCost = grossCost.minus(inputs.downPayment);
   financeCost = applyLenderAdjustments(
-    financeCost, inputs.financeProduct, inputs.stateCode
+    financeCost,
+    inputs.financeProduct,
+    inputs.stateCode,
   );
 
   // 9. Net Cost
   const netCost = financeCost.minus(rebatesReducingNet);
 
   // 10. PPW calculations
-  const ppw = (v: Big) => systemSizeWatts.gt(0)
-    ? v.div(systemSizeWatts).round(2) : Big(0);
+  const ppw = (v: Big) =>
+    systemSizeWatts.gt(0) ? v.div(systemSizeWatts).round(2) : Big(0);
 
   // 11. Commission Base
   const commissionBase = grossCostBeforeRebates.minus(dealerFee);
 
   return {
-    basePPW, baseCost, equipmentTotal, systemAddersTotal, valueAddersTotal,
-    addersAndEquipmentTotal, baseCostWithAddersAndEquipment,
-    taxTotal, baseCostWithTax: baseCost.plus(taxTotal),
-    dealerFeeFactor, dealerFee, baseCostWithDealerFees,
-    discountsTotal, grossCostBeforeRebates,
-    rebatesReducingGross, grossCost, rebatesReducingNet, federalRebateTotal,
-    financeCost, netCost,
-    baseCostPPW: ppw(baseCost), grossPPW: ppw(grossCost),
-    grossBeforeRebatesPPW: ppw(grossCostBeforeRebates), netPPW: ppw(netCost),
-    commissionBase, commissionBasePPW: ppw(commissionBase),
+    basePPW,
+    baseCost,
+    equipmentTotal,
+    systemAddersTotal,
+    valueAddersTotal,
+    addersAndEquipmentTotal,
+    baseCostWithAddersAndEquipment,
+    taxTotal,
+    baseCostWithTax: baseCost.plus(taxTotal),
+    dealerFeeFactor,
+    dealerFee,
+    baseCostWithDealerFees,
+    discountsTotal,
+    grossCostBeforeRebates,
+    rebatesReducingGross,
+    grossCost,
+    rebatesReducingNet,
+    federalRebateTotal,
+    financeCost,
+    netCost,
+    baseCostPPW: ppw(baseCost),
+    grossPPW: ppw(grossCost),
+    grossBeforeRebatesPPW: ppw(grossCostBeforeRebates),
+    netPPW: ppw(netCost),
+    commissionBase,
+    commissionBasePPW: ppw(commissionBase),
     calculatedEquipment: inputs.equipment,
     calculatedSystemAdders: inputs.systemAdders,
     calculatedValueAdders: inputs.valueAdders,
@@ -2260,23 +2368,29 @@ function calculatePricing(inputs: PricingInputs): PricingOutput {
 
 // Lender-specific adjustments (replaces Enerflo's hardcoded financeCost function)
 function applyLenderAdjustments(
-  financeCost: Big, product: FinanceProduct, stateCode: string
+  financeCost: Big,
+  product: FinanceProduct,
+  stateCode: string,
 ): Big {
   // Each lender provider can implement custom adjustments
   // Climate First: +$1,125 loan fee + FL stamp tax
   // Other lenders: no adjustments (pass-through)
   const provider = getLenderProvider(product.lenderSlug);
-  return provider.adjustFinanceCost?.(financeCost, product, stateCode) ?? financeCost;
+  return (
+    provider.adjustFinanceCost?.(financeCost, product, stateCode) ?? financeCost
+  );
 }
 ```
 
 **Validation Rules (from Enerflo's pricing model):**
+
 - `panelCheck`: Minimum 7 panels required
 - `lenderCheck`: GoodLeap TPO requires Qcells or Sirius panels
 - `systemSizeWattsValid`: System size must be > 0
 - Lender-specific restrictions can be configured per lender in KinOS admin
 
 **Key Design Decisions:**
+
 1. **No custom function engine for v1.** The waterfall is implemented in TypeScript.
    All inputs are typed, all outputs are predictable. If a pricing rule changes,
    we update the code — not a JSON function definition.
@@ -2309,12 +2423,20 @@ interface LenderProvider {
   slug: string;
 
   // Credit Application
-  submitApplication(deal: Deal, contact: Contact, product: LenderProduct): Promise<ApplicationResult>;
+  submitApplication(
+    deal: Deal,
+    contact: Contact,
+    product: LenderProduct,
+  ): Promise<ApplicationResult>;
   getApplicationStatus(applicationId: string): Promise<ApplicationStatus>;
 
   // Stipulations
   getStipulations(applicationId: string): Promise<Stipulation[]>;
-  submitStipDocument(applicationId: string, stipId: string, file: File): Promise<void>;
+  submitStipDocument(
+    applicationId: string,
+    stipId: string,
+    file: File,
+  ): Promise<void>;
 
   // Agreements/Docs
   getAgreements(applicationId: string): Promise<Agreement[]>;
@@ -2324,12 +2446,24 @@ interface LenderProvider {
 }
 
 // Implementations
-class GoodLeapProvider implements LenderProvider { /* ... */ }
-class LightReachProvider implements LenderProvider { /* ... */ }
-class EnFinProvider implements LenderProvider { /* ... */ }
-class SunlightProvider implements LenderProvider { /* ... */ }
-class DividendProvider implements LenderProvider { /* ... */ }
-class SkylightProvider implements LenderProvider { /* ... */ }
+class GoodLeapProvider implements LenderProvider {
+  /* ... */
+}
+class LightReachProvider implements LenderProvider {
+  /* ... */
+}
+class EnFinProvider implements LenderProvider {
+  /* ... */
+}
+class SunlightProvider implements LenderProvider {
+  /* ... */
+}
+class DividendProvider implements LenderProvider {
+  /* ... */
+}
+class SkylightProvider implements LenderProvider {
+  /* ... */
+}
 ```
 
 ---
@@ -2353,7 +2487,7 @@ interface SigningProvider {
   createEnvelope(params: {
     templateId: string;
     recipients: Recipient[];
-    fieldValues: Record<string, any>;  // Merge fields: homeowner name, address, system specs, pricing, lender terms
+    fieldValues: Record<string, any>; // Merge fields: homeowner name, address, system specs, pricing, lender terms
     dealId: string;
   }): Promise<Envelope>;
 
@@ -2381,40 +2515,40 @@ no manual entry by the closer.
 // Merge field mapping: KinOS deal data → PandaDoc template fields
 const MERGE_FIELD_MAP = {
   // Homeowner
-  'homeowner.name': (deal) => deal.contact.fullName,
-  'homeowner.address': (deal) => deal.contact.fullAddress,
-  'homeowner.email': (deal) => deal.contact.email,
-  'homeowner.phone': (deal) => deal.contact.phone,
+  "homeowner.name": (deal) => deal.contact.fullName,
+  "homeowner.address": (deal) => deal.contact.fullAddress,
+  "homeowner.email": (deal) => deal.contact.email,
+  "homeowner.phone": (deal) => deal.contact.phone,
 
   // System
-  'system.size_kw': (deal) => deal.proposal.system_size_kw,
-  'system.panel_count': (deal) => deal.proposal.panel_count,
-  'system.panel_model': (deal) => deal.design.module_name,
-  'system.inverter_model': (deal) => deal.design.inverter_name,
-  'system.annual_production': (deal) => deal.design.annual_kwh,
+  "system.size_kw": (deal) => deal.proposal.system_size_kw,
+  "system.panel_count": (deal) => deal.proposal.panel_count,
+  "system.panel_model": (deal) => deal.design.module_name,
+  "system.inverter_model": (deal) => deal.design.inverter_name,
+  "system.annual_production": (deal) => deal.design.annual_kwh,
 
   // Pricing
-  'pricing.gross_cost': (deal) => deal.proposal.gross_cost,
-  'pricing.net_cost': (deal) => deal.proposal.net_cost,
-  'pricing.ppw': (deal) => deal.proposal.gross_ppw,
-  'pricing.monthly_payment': (deal) => deal.proposal.monthly_payment,
-  'pricing.down_payment': (deal) => deal.proposal.down_payment,
+  "pricing.gross_cost": (deal) => deal.proposal.gross_cost,
+  "pricing.net_cost": (deal) => deal.proposal.net_cost,
+  "pricing.ppw": (deal) => deal.proposal.gross_ppw,
+  "pricing.monthly_payment": (deal) => deal.proposal.monthly_payment,
+  "pricing.down_payment": (deal) => deal.proposal.down_payment,
 
   // Financing
-  'finance.lender': (deal) => deal.proposal.lender_name,
-  'finance.product': (deal) => deal.proposal.lender_product_name,
-  'finance.term': (deal) => deal.proposal.loan_term,
-  'finance.rate': (deal) => deal.proposal.rate_per_kwh,
-  'finance.escalator': (deal) => deal.proposal.escalator_percent,
+  "finance.lender": (deal) => deal.proposal.lender_name,
+  "finance.product": (deal) => deal.proposal.lender_product_name,
+  "finance.term": (deal) => deal.proposal.loan_term,
+  "finance.rate": (deal) => deal.proposal.rate_per_kwh,
+  "finance.escalator": (deal) => deal.proposal.escalator_percent,
 
   // Rep
-  'rep.name': (deal) => deal.closer.fullName,
-  'rep.license': (deal) => deal.closer.sales_rep_license_number,
-  'rep.phone': (deal) => deal.closer.phone,
+  "rep.name": (deal) => deal.closer.fullName,
+  "rep.license": (deal) => deal.closer.sales_rep_license_number,
+  "rep.phone": (deal) => deal.closer.phone,
 
   // Dates
-  'date.today': () => formatDate(new Date()),
-  'date.estimated_install': (deal) => deal.estimated_install_date,
+  "date.today": () => formatDate(new Date()),
+  "date.estimated_install": (deal) => deal.estimated_install_date,
 };
 
 async function assembleDocumentPacket(deal: Deal) {
@@ -2532,25 +2666,30 @@ async function assembleDocumentPacket(deal: Deal) {
 
 ```typescript
 const STAGE_TRANSITIONS: Record<string, string[]> = {
-  'new_lead':            ['appointment_set', 'cancelled', 'lost'],
-  'appointment_set':     ['appointment_sat', 'cancelled', 'lost'],
-  'appointment_sat':     ['design_requested', 'cancelled', 'lost'],
-  'design_requested':    ['design_complete', 'cancelled', 'lost'],
-  'design_complete':     ['proposal_sent', 'design_requested', 'cancelled', 'lost'],
-  'proposal_sent':       ['proposal_accepted', 'design_requested', 'cancelled', 'lost'],
-  'proposal_accepted':   ['financing_applied', 'cancelled', 'lost'],
-  'financing_applied':   ['financing_approved', 'stips_pending', 'cancelled', 'lost'],
-  'financing_approved':  ['stips_pending', 'contract_sent', 'cancelled', 'lost'],
-  'stips_pending':       ['stips_cleared', 'cancelled', 'lost'],
-  'stips_cleared':       ['contract_sent', 'cancelled', 'lost'],
-  'contract_sent':       ['contract_signed', 'cancelled', 'lost'],
-  'contract_signed':     ['submission_ready', 'cancelled'],
-  'submission_ready':    ['submitted', 'cancelled'],
-  'submitted':           ['intake_approved', 'intake_rejected'],
-  'intake_rejected':     ['submission_ready', 'cancelled'],
-  'intake_approved':     [],  // Terminal — lives in Quickbase now
-  'cancelled':           [],
-  'lost':                ['appointment_set'],  // Can revive lost deals
+  new_lead: ["appointment_set", "cancelled", "lost"],
+  appointment_set: ["appointment_sat", "cancelled", "lost"],
+  appointment_sat: ["design_requested", "cancelled", "lost"],
+  design_requested: ["design_complete", "cancelled", "lost"],
+  design_complete: ["proposal_sent", "design_requested", "cancelled", "lost"],
+  proposal_sent: ["proposal_accepted", "design_requested", "cancelled", "lost"],
+  proposal_accepted: ["financing_applied", "cancelled", "lost"],
+  financing_applied: [
+    "financing_approved",
+    "stips_pending",
+    "cancelled",
+    "lost",
+  ],
+  financing_approved: ["stips_pending", "contract_sent", "cancelled", "lost"],
+  stips_pending: ["stips_cleared", "cancelled", "lost"],
+  stips_cleared: ["contract_sent", "cancelled", "lost"],
+  contract_sent: ["contract_signed", "cancelled", "lost"],
+  contract_signed: ["submission_ready", "cancelled"],
+  submission_ready: ["submitted", "cancelled"],
+  submitted: ["intake_approved", "intake_rejected"],
+  intake_rejected: ["submission_ready", "cancelled"],
+  intake_approved: [], // Terminal — lives in Quickbase now
+  cancelled: [],
+  lost: ["appointment_set"], // Can revive lost deals
 };
 ```
 
@@ -2565,6 +2704,7 @@ step-by-step process (not just a gate checklist). Each step must be completed
 before the next unlocks. The left sidebar shows progress with checkmarks.
 
 **Enerflo's steps (from screenshot):**
+
 1. Title Check ✅ — Automatic property title lookup, confirm owner name
 2. Consumption ✅ — Utility bill / usage data entry
 3. Deal Details ✅ — System info, pricing, adders
@@ -2645,81 +2785,165 @@ Enerflo pre-intake checklist:
 ```typescript
 const DEFAULT_GATES = [
   // === DOCUMENTS ===
-  { name: 'Install Agreement Signed', gate_type: 'document_signed',
-    config: { template_key: 'kin_install_agreement' }, display_order: 1 },
-  { name: 'Loan/Lender Docs Signed', gate_type: 'financing_status',
-    config: { required_status: ['approved', 'stips_cleared'] }, display_order: 2 },
+  {
+    name: "Install Agreement Signed",
+    gate_type: "document_signed",
+    config: { template_key: "kin_install_agreement" },
+    display_order: 1,
+  },
+  {
+    name: "Loan/Lender Docs Signed",
+    gate_type: "financing_status",
+    config: { required_status: ["approved", "stips_cleared"] },
+    display_order: 2,
+  },
 
   // === FILE UPLOADS ===
-  { name: 'Utility Bill Uploaded', gate_type: 'file_uploaded',
-    config: { file_type: 'utility_bill', accepted_formats: ['pdf','jpg','png'] }, display_order: 3 },
+  {
+    name: "Utility Bill Uploaded",
+    gate_type: "file_uploaded",
+    config: {
+      file_type: "utility_bill",
+      accepted_formats: ["pdf", "jpg", "png"],
+    },
+    display_order: 3,
+  },
 
   // === EXTERNAL VERIFICATION ===
-  { name: 'CallPilot Welcome Call Completed', gate_type: 'checkbox',
-    config: { label: 'CallPilot welcome call has been completed' }, display_order: 4 },
-  { name: 'Site Survey Scheduled', gate_type: 'checkbox',
-    config: { label: 'Site survey has been scheduled with the customer' }, display_order: 5 },
+  {
+    name: "CallPilot Welcome Call Completed",
+    gate_type: "checkbox",
+    config: { label: "CallPilot welcome call has been completed" },
+    display_order: 4,
+  },
+  {
+    name: "Site Survey Scheduled",
+    gate_type: "external_status",
+    config: {
+      system: "arrivy",
+      label: "Site survey scheduled via Arrivy",
+      required_status: ["scheduled", "en_route", "started", "completed"],
+      fallback: "checkbox", // Manual checkbox until Arrivy integration is built
+    },
+    display_order: 5,
+  },
 
   // === QUESTIONS ===
-  { name: 'Additional Work Needed?', gate_type: 'question',
-    config: { question: 'Is there any additional work needed?', answer_type: 'select',
-              options: ['No', 'Main Panel Upgrade', 'Derate', 'Roof Work', 'Tree Removal', 'Other'] },
-    display_order: 6 },
-  { name: 'Shading Issues?', gate_type: 'question',
-    config: { question: 'Are there any shading issues?', answer_type: 'select',
-              options: ['No', 'Yes - addressed in design', 'Yes - customer aware'] },
-    display_order: 7 },
-  { name: 'Offset Below 100%?', gate_type: 'question',
-    config: { question: 'Is the offset below 100%?', answer_type: 'select',
-              options: ['No - 100% or above', 'Yes - customer acknowledges'] },
-    display_order: 8 },
-  { name: 'Design Preferences', gate_type: 'question',
-    config: { question: 'Any design preferences or notes for ops team?', answer_type: 'text' },
-    display_order: 9 },
-  { name: 'New Move-In?', gate_type: 'question',
-    config: { question: 'Is this a new move-in (less than 12 months)?', answer_type: 'boolean' },
-    display_order: 10 },
+  {
+    name: "Additional Work Needed?",
+    gate_type: "question",
+    config: {
+      question: "Is there any additional work needed?",
+      answer_type: "select",
+      options: [
+        "No",
+        "Main Panel Upgrade",
+        "Derate",
+        "Roof Work",
+        "Tree Removal",
+        "Other",
+      ],
+    },
+    display_order: 6,
+  },
+  {
+    name: "Shading Issues?",
+    gate_type: "question",
+    config: {
+      question: "Are there any shading issues?",
+      answer_type: "select",
+      options: ["No", "Yes - addressed in design", "Yes - customer aware"],
+    },
+    display_order: 7,
+  },
+  {
+    name: "Offset Below 100%?",
+    gate_type: "question",
+    config: {
+      question: "Is the offset below 100%?",
+      answer_type: "select",
+      options: ["No - 100% or above", "Yes - customer acknowledges"],
+    },
+    display_order: 8,
+  },
+  {
+    name: "Design Preferences",
+    gate_type: "question",
+    config: {
+      question: "Any design preferences or notes for ops team?",
+      answer_type: "text",
+    },
+    display_order: 9,
+  },
+  {
+    name: "New Move-In?",
+    gate_type: "question",
+    config: {
+      question: "Is this a new move-in (less than 12 months)?",
+      answer_type: "boolean",
+    },
+    display_order: 10,
+  },
 
   // === CHECKBOXES ===
-  { name: 'Lender Welcome Call Scheduled', gate_type: 'checkbox',
-    config: { label: 'Lender welcome call has been scheduled/completed' }, display_order: 11 },
-  { name: 'Customer Photo ID Collected', gate_type: 'checkbox',
-    config: { label: 'Customer photo ID has been collected' }, display_order: 12 },
-  { name: 'Next Steps Verified with Customer', gate_type: 'checkbox',
-    config: { label: 'All next steps have been verified with the customer' }, display_order: 13 },
+  {
+    name: "Lender Welcome Call Scheduled",
+    gate_type: "checkbox",
+    config: { label: "Lender welcome call has been scheduled/completed" },
+    display_order: 11,
+  },
+  {
+    name: "Customer Photo ID Collected",
+    gate_type: "checkbox",
+    config: { label: "Customer photo ID has been collected" },
+    display_order: 12,
+  },
+  {
+    name: "Next Steps Verified with Customer",
+    gate_type: "checkbox",
+    config: { label: "All next steps have been verified with the customer" },
+    display_order: 13,
+  },
 ];
 ```
 
 ### 10.2 Gating Engine Logic
 
 ```typescript
-async function checkDealReadyForSubmission(dealId: string): Promise<GateCheckResult> {
+async function checkDealReadyForSubmission(
+  dealId: string,
+): Promise<GateCheckResult> {
   const deal = await getDealWithRelations(dealId);
   const gates = await getActiveGatesForDeal(deal);
   const completions = await getGateCompletions(dealId);
 
-  const results = gates.map(gate => {
-    const completion = completions.find(c => c.gate_definition_id === gate.id);
+  const results = gates.map((gate) => {
+    const completion = completions.find(
+      (c) => c.gate_definition_id === gate.id,
+    );
 
     switch (gate.gate_type) {
-      case 'document_signed':
+      case "document_signed":
         return checkDocumentSigned(deal, gate.config);
-      case 'file_uploaded':
+      case "file_uploaded":
         return checkFileUploaded(deal, gate.config);
-      case 'financing_status':
+      case "financing_status":
         return checkFinancingStatus(deal, gate.config);
-      case 'checkbox':
+      case "checkbox":
         return { passed: completion?.is_completed ?? false };
-      case 'question':
-        return { passed: completion?.is_completed ?? false, value: completion?.value };
-      case 'field_required':
+      case "question":
+        return {
+          passed: completion?.is_completed ?? false,
+          value: completion?.value,
+        };
+      case "field_required":
         return checkFieldRequired(deal, gate.config);
       default:
         return { passed: false };
     }
   });
 
-  const allPassed = results.every(r => r.passed);
+  const allPassed = results.every((r) => r.passed);
   return {
     ready: allPassed,
     gates: gates.map((gate, i) => ({
@@ -2733,7 +2957,34 @@ async function checkDealReadyForSubmission(dealId: string): Promise<GateCheckRes
 
 ---
 
-## 11. QUICKBASE INTEGRATION
+## 11. QUICKBASE INTEGRATION (Bidirectional)
+
+### 11.0 Architecture: Bidirectional Sync
+
+Quickbase integration has TWO directions:
+
+1. **KinOS → Quickbase (Push):** Submit completed deals for ops processing
+2. **Quickbase → KinOS (Pull):** Post-sale milestone visibility for closers
+
+The push is the v1 priority. The pull enables post-sale pipeline visibility
+(see `docs/kinos-future-features.md` → "Post-Sale Pipeline & Quickbase Bidirectional Sync").
+
+Post-sale milestones from Quickbase:
+
+```
+intake_approved → site_survey_scheduled → site_survey_complete →
+  permit_submitted → permit_approved → install_scheduled →
+  install_complete → inspection_scheduled → inspection_passed →
+  pto_submitted → pto_approved → project_complete
+```
+
+Closer actions that write back to Quickbase:
+
+- Cancel deal (with reason)
+- Respond to change orders (approve/reject)
+- Flag issues ("customer unhappy about timeline")
+- Update customer contact info
+- Request install reschedule
 
 ### 11.1 Deal Submission Push
 
@@ -2746,51 +2997,79 @@ async function submitDealToQuickbase(dealId: string) {
   // Map deal fields to Quickbase fields
   const qbPayload = {
     // Customer Info
-    'Customer Name': `${deal.contact.first_name} ${deal.contact.last_name}`,
-    'Phone': deal.contact.phone,
-    'Email': deal.contact.email,
-    'Address': deal.contact.full_address,
-    'State': deal.contact.state,
+    "Customer Name": `${deal.contact.first_name} ${deal.contact.last_name}`,
+    Phone: deal.contact.phone,
+    Email: deal.contact.email,
+    Address: deal.contact.full_address,
+    State: deal.contact.state,
 
     // Rep Info
-    'Setter': `${deal.setter.first_name} ${deal.setter.last_name}`,
-    'Closer': `${deal.closer.first_name} ${deal.closer.last_name}`,
-    'Office': deal.office.name,
+    Setter: `${deal.setter.first_name} ${deal.setter.last_name}`,
+    Closer: `${deal.closer.first_name} ${deal.closer.last_name}`,
+    Office: deal.office.name,
 
     // System
-    'System Size (kW)': deal.system_size_kw,
-    'Panel Count': deal.panel_count,
-    'Panel Model': deal.panel_model,
-    'Offset': deal.offset_percentage,
+    "System Size (kW)": deal.system_size_kw,
+    "Panel Count": deal.panel_count,
+    "Panel Model": deal.panel_model,
+    Offset: deal.offset_percentage,
 
     // Pricing
-    'Gross Price': deal.gross_price,
-    'Net Price': deal.net_price,
-    'PPW': deal.net_ppw,
+    "Gross Price": deal.gross_price,
+    "Net Price": deal.net_price,
+    PPW: deal.net_ppw,
 
     // Financing
-    'Lender': deal.lender?.name,
-    'Loan Product': deal.loan_product,
-    'Financing Status': deal.financing_status,
+    Lender: deal.lender?.name,
+    "Loan Product": deal.loan_product,
+    "Financing Status": deal.financing_status,
 
     // Gate Answers (all submission questions)
     ...mapGateAnswersToQuickbase(deal.gate_completions),
 
     // Links
-    'KinOS Deal URL': `https://app.kinhome.com/deals/${deal.id}`,
-    'Aurora Project': deal.aurora_project_id,
+    "KinOS Deal URL": `https://app.kinhome.com/deals/${deal.id}`,
+    "Aurora Project": deal.aurora_project_id,
   };
 
   const result = await quickbaseApi.createRecord(QB_TABLE_ID, qbPayload);
 
   await updateDeal(dealId, {
     quickbase_deal_id: result.recordId,
-    submission_status: 'submitted',
+    submission_status: "submitted",
     submitted_at: new Date(),
-    stage: 'submitted'
+    stage: "submitted",
   });
 }
 ```
+
+### 11.5 Arrivy Integration (Site Surveys & Field Service)
+
+Arrivy is KIN Home's field management platform for site surveys and installs.
+KinOS integrates with Arrivy to give closers self-service survey scheduling.
+
+**Site survey is a submission GATE** — the survey must be SCHEDULED (not completed)
+before a deal can be submitted. The survey happens in parallel with or after submission.
+
+**Capabilities:**
+
+- GET available survey time slots by region/address
+- POST create survey task (customer info + address auto-filled from deal)
+- PUT reschedule survey
+- DELETE cancel survey
+- GET task status (scheduled, en_route, started, completed)
+- Webhooks: task status change notifications
+
+**Integration Pattern:**
+Same adapter pattern as lender integrations — abstract Arrivy-specific API behind
+a field service interface. Since Arrivy also handles installs, the integration layer
+supports multiple task types (survey, install, inspection) for future post-sale visibility.
+
+**Deal fields needed:**
+
+- arrivy_task_id (TEXT) — Arrivy's task/job ID
+- site_survey_status (TEXT) — scheduled, en_route, in_progress, completed, cancelled
+- site_survey_date (TIMESTAMPTZ) — scheduled survey date/time
 
 ---
 
@@ -2813,8 +3092,10 @@ Lead → Design → Finance →      → Intake Review
                                   → Commission milestones ──► Sequifi/CaptiveIQ
 ```
 
-**KinOS does NOT push to Sequifi/CaptiveIQ directly.**
-That relationship stays as-is through Quickbase. Don't fix what isn't broken.
+**KinOS does NOT push to Sequifi/CaptiveIQ directly in v1.**
+That relationship stays as-is through Quickbase initially. Future: direct push
+to Sequifi/CaptiveIQ on deal milestones (contract signed, install complete, PTO).
+See `docs/kinos-future-features.md` → "Commission Push" for the full plan.
 
 ### 12.2 Quickbase → KinOS Status Sync (Optional but Recommended)
 
@@ -2823,6 +3104,7 @@ This lets managers see full pipeline health without switching to Quickbase.
 
 **Option A: Quickbase Webhook (preferred if available)**
 Quickbase fires a webhook to KinOS when deal status changes:
+
 - `intake_approved` → deal was accepted by ops team
 - `intake_rejected` → deal needs fixes (closer sees this in KinOS)
 - `installed` → project completed
@@ -2850,24 +3132,29 @@ async function handleQuickbaseWebhook(payload: QuickbaseWebhookPayload) {
   });
 
   // If rejected, notify closer so they can fix and re-submit
-  if (payload.status === 'rejected') {
-    await notifyUser(deal.closer_id, 'submission_rejected',
+  if (payload.status === "rejected") {
+    await notifyUser(
+      deal.closer_id,
+      "submission_rejected",
       `Deal rejected: ${deal.contact.first_name} ${deal.contact.last_name}`,
-      `Reason: ${payload.rejection_reason}`
+      `Reason: ${payload.rejection_reason}`,
     );
-    await updateDeal(deal.id, { stage: 'intake_rejected' });
+    await updateDeal(deal.id, { stage: "intake_rejected" });
   }
 
   // If approved, mark as terminal in KinOS
-  if (payload.status === 'approved') {
-    await updateDeal(deal.id, { stage: 'intake_approved' });
-    await notifyUser(deal.closer_id, 'submission_approved',
+  if (payload.status === "approved") {
+    await updateDeal(deal.id, { stage: "intake_approved" });
+    await notifyUser(
+      deal.closer_id,
+      "submission_approved",
       `Deal approved: ${deal.contact.first_name} ${deal.contact.last_name}`,
-      'Intake team approved — moving to ops!'
+      "Intake team approved — moving to ops!",
     );
   }
 }
 ```
+
 ```
 
 ---
@@ -2916,16 +3203,25 @@ async function handleQuickbaseWebhook(payload: QuickbaseWebhookPayload) {
 - **Tab: Files** — All attachments (utility bills, photos, IDs, contracts)
 
 ### 14.5 Admin Panel
-- **Users** — CRUD, role assignment, office/team assignment, KIN ID management
-- **Offices & Teams** — CRUD, RepCard mapping
-- **Equipment** — Panel/inverter/battery catalog management
-- **Pricing** — PPW configuration, buffer/markup settings
-- **Lenders** — Lender management, product configuration, dealer fee/markup settings
-- **Document Templates** — Configure which docs required for which deal types
+- **Users** — CRUD, role assignment, office/team assignment, activate/deactivate
+- **Offices & Teams** — CRUD, RepCard mapping, market assignment
+- **Equipment** — Aurora catalog mirror, market availability toggles, pricing overrides, spec sheet links
+- **Pricing Engine** — Visual waterfall display, active rules in plain English, test/sandbox mode, audit trail
+- **Pricing Configs** — Base PPW per market, min/max bounds, effective dates
+- **Adders** — CRUD templates, scope rules, categories, auto-apply conditions
+- **Lenders** — Lender management, product configuration, dealer fee/markup settings, state availability
+- **Document Templates** — Configure which docs required for which deal types, merge field mapping
 - **Submission Gates** — Add/remove/reorder gates, configure gate types
-- **Integrations** — API key management, webhook URLs, sync status, test connections
+- **Workflow Steps** — Step definitions, ordering, blocking rules
+- **Integrations** — API key management, webhook URLs, sync status, test connections, health dashboard
 
-### 14.6 Reports
+### 14.6 Post-Sale Pipeline (Future)
+- **Post-Sale Timeline** — Milestone progress from Quickbase (permit, install, inspection, PTO)
+- **Closer Actions** — Cancel, respond to change orders, flag issues, request reschedule
+- **Notifications** — Milestone updates pushed to closers
+- **Change Order Management** — View proposed changes, approve/reject with pricing impact
+
+### 14.7 Reports
 - **Pipeline Report** — Deals by stage, conversion rates, stage duration averages
 - **Rep Performance** — Deals per rep, close rate, average deal size, time-to-close
 - **Office Report** — Office-level aggregation of all metrics
@@ -2937,136 +3233,120 @@ async function handleQuickbaseWebhook(payload: QuickbaseWebhookPayload) {
 ## 15. API ROUTE ARCHITECTURE
 
 ```
+
 /api
 ├── /webhooks
-│   ├── /repcard          POST  — RepCard webhook receiver
-│   ├── /aurora            POST  — Aurora webhook receiver
-│   ├── /lender/[slug]    POST  — Lender-specific webhook
-│   └── /signing          POST  — Doc signing webhook
+│ ├── /repcard POST — RepCard webhook receiver
+│ ├── /aurora POST — Aurora webhook receiver
+│ ├── /lender/[slug] POST — Lender-specific webhook
+│ └── /signing POST — Doc signing webhook
 │
 ├── /auth
-│   ├── /login             POST
-│   ├── /logout            POST
-│   ├── /forgot-password  POST
-│   └── /reset-password   POST
+│ ├── /login POST
+│ ├── /logout POST
+│ ├── /forgot-password POST
+│ └── /reset-password POST
 │
 ├── /deals
-│   ├── /                  GET   — List deals (filtered/paginated)
-│   ├── /[id]             GET   — Deal detail
-│   ├── /[id]             PATCH — Update deal
-│   ├── /[id]/stage       PATCH — Advance/change stage
-│   ├── /[id]/design      POST  — Request Aurora design
-│   ├── /[id]/financing   POST  — Submit financing application
-│   ├── /[id]/documents   POST  — Send document for signing
-│   ├── /[id]/gates       GET   — Get gate status
-│   ├── /[id]/gates/[gid] PATCH — Complete a gate
-│   ├── /[id]/submit      POST  — Submit to Quickbase
-│   ├── /[id]/attachments POST  — Upload attachment
-│   └── /[id]/activity    GET   — Activity feed
+│ ├── / GET — List deals (filtered/paginated)
+│ ├── /[id] GET — Deal detail
+│ ├── /[id] PATCH — Update deal
+│ ├── /[id]/stage PATCH — Advance/change stage
+│ ├── /[id]/design POST — Request Aurora design
+│ ├── /[id]/financing POST — Submit financing application
+│ ├── /[id]/documents POST — Send document for signing
+│ ├── /[id]/gates GET — Get gate status
+│ ├── /[id]/gates/[gid] PATCH — Complete a gate
+│ ├── /[id]/submit POST — Submit to Quickbase
+│ ├── /[id]/attachments POST — Upload attachment
+│ └── /[id]/activity GET — Activity feed
 │
 ├── /contacts
-│   ├── /                  GET   — List contacts
-│   ├── /[id]             GET   — Contact detail
-│   └── /[id]             PATCH — Update contact
+│ ├── / GET — List contacts
+│ ├── /[id] GET — Contact detail
+│ └── /[id] PATCH — Update contact
 │
 ├── /users
-│   ├── /                  GET   — List users
-│   ├── /[id]             GET   — User detail
-│   ├── /[id]             PATCH — Update user
-│   └── /me               GET   — Current user
+│ ├── / GET — List users
+│ ├── /[id] GET — User detail
+│ ├── /[id] PATCH — Update user
+│ └── /me GET — Current user
 │
 ├── /admin
-│   ├── /offices           CRUD
-│   ├── /teams             CRUD
-│   ├── /roles             CRUD
-│   ├── /equipment         CRUD
-│   ├── /pricing           CRUD
-│   ├── /lenders           CRUD
-│   ├── /lender-products  CRUD
-│   ├── /adder-templates  CRUD
-│   ├── /document-templates CRUD
-│   ├── /gate-definitions CRUD
-│   └── /integrations     GET/PATCH
+│ ├── /offices CRUD
+│ ├── /teams CRUD
+│ ├── /roles CRUD
+│ ├── /equipment CRUD
+│ ├── /pricing CRUD
+│ ├── /lenders CRUD
+│ ├── /lender-products CRUD
+│ ├── /adder-templates CRUD
+│ ├── /document-templates CRUD
+│ ├── /gate-definitions CRUD
+│ └── /integrations GET/PATCH
 │
-└── /reports
-    ├── /pipeline          GET
-    ├── /performance       GET
-    ├── /office            GET
-    ├── /financing         GET
-    └── /revenue           GET
-```
+├── /reports
+│ ├── /pipeline GET
+│ ├── /performance GET
+│ ├── /office GET
+│ ├── /financing GET
+│ └── /revenue GET
+│
+├── /arrivy
+│ ├── /availability GET — Available survey time slots
+│ ├── /schedule POST — Schedule site survey
+│ ├── /[taskId]/reschedule PATCH — Reschedule survey
+│ ├── /[taskId]/cancel DELETE — Cancel survey
+│ └── /webhook POST — Arrivy status webhook
+│
+├── /quickbase
+│ ├── /submit POST — Submit deal to Quickbase
+│ ├── /status/[dealId] GET — Pull deal status from Quickbase
+│ └── /webhook POST — Quickbase status change webhook
+
+````
 
 ---
 
-## 16. SPRINT PLAN & BUILD ORDER
+## 16. BUILD STATUS & REMAINING WORK
 
-### Phase 1: Foundation (Weeks 1-3)
-**Goal:** Auth, data model, basic CRUD, RepCard webhook receiver
+### Completed Epics
 
-- [ ] Supabase project setup + Postgres schema migration
-- [ ] Next.js project scaffolding (App Router, Tailwind, Shadcn/UI)
-- [ ] Authentication (Supabase Auth + RLS policies)
-- [ ] User/Office/Team/Role CRUD
-- [ ] RepCard webhook endpoint (all 7 events)
-- [ ] Contact + Deal auto-creation from webhook
-- [ ] Basic deal list + detail views
-- [ ] Deploy to Vercel
+| Epic | Name | Status | Key Deliverables |
+|------|------|--------|-----------------|
+| 0 | Infrastructure | ✅ Complete | Supabase project, schema migration, Next.js scaffold, Vercel deploy |
+| 1 | Auth & Users | ✅ Complete | Supabase Auth, proxy.ts (Next.js 16), RLS policies, RepCard user sync |
+| 2 | RepCard Integration | ✅ Complete | 7 webhook handlers, contact/deal auto-creation, user upsert |
+| 3 | Pipeline & Deals | ✅ Complete | Kanban drag-drop, 19 stages, realtime, dashboard, deal detail |
+| 4 | Leads Management | ✅ Complete | List, detail, notes, attachments, CSV import, filter presets |
+| 5 | Calendar | ✅ Complete | Appointments CRUD, day/week/month/list views, dashboard widgets |
+| 6 | Aurora Design | ✅ Complete | API client, service layer, webhooks, 3 design paths, consumption/design workflow |
+| 7 | Proposal & Pricing | ✅ Complete (code) | Pricing engine (Big.js), goal-seek, multi-proposal, adder scope rules. Needs real lender data verification. |
 
-### Phase 2: Deal Pipeline (Weeks 4-6)
-**Goal:** Full deal management UI, stage transitions
+### Remaining Epics
 
-- [ ] Kanban pipeline view
-- [ ] Deal detail page (all tabs)
-- [ ] Stage transition engine with validation
-- [ ] Activity/timeline feed
-- [ ] File upload + attachment management
-- [ ] Deal stage history + audit trail
-- [ ] Notification system (in-app)
-- [ ] Dashboard (role-dependent)
+| Epic | Name | Status | See |
+|------|------|--------|-----|
+| 8 | Financing | 📋 Planned | `docs/kinos-future-features.md` |
+| 9 | Contracting & Doc Signing | 📋 Planned | `docs/kinos-future-features.md` |
+| 10 | Submission & Quickbase | 📋 Planned | `docs/kinos-future-features.md` |
+| 11 | Admin Settings Suite | 📋 Planned | `docs/kinos-future-features.md` |
+| 12 | Reports & Analytics | 📋 Planned | `docs/kinos-future-features.md` |
 
-### Phase 3: Aurora + Design (Weeks 7-9)
-**Goal:** Aurora integration, design workflow
+### Future Features (post-v1)
 
-- [ ] Aurora API integration (project creation, design requests)
-- [ ] Aurora webhook receiver
-- [ ] Design tab in deal detail
-- [ ] Equipment catalog management (admin)
-- [ ] Pricing configuration (admin)
-- [ ] System details + pricing on deal
-
-### Phase 4: Financing (Weeks 10-13)
-**Goal:** Lender integrations, financing workflow
-
-- [ ] Lender provider abstraction layer
-- [ ] GoodLeap integration (first lender)
-- [ ] LightReach integration
-- [ ] Financing application flow in deal detail
-- [ ] Stip tracking + document upload
-- [ ] Additional lender integrations (EnFin, Sunlight, Dividend, Skylight)
-- [ ] Dealer fee / margin configuration (admin)
-
-### Phase 5: Contracts + Submission (Weeks 14-17)
-**Goal:** Doc signing, gating engine, Quickbase push
-
-- [ ] Signing provider abstraction layer
-- [ ] Selected signing provider integration
-- [ ] Document template management (admin)
-- [ ] Document assembly + sending flow
-- [ ] Configurable gating engine
-- [ ] Gate management (admin)
-- [ ] Submission workflow UI
-- [ ] Quickbase API integration (deal push)
-
-### Phase 6: Polish + Launch (Weeks 18-20)
-**Goal:** Reports, Twilio, commission push, testing, migration
-
-- [ ] Twilio SMS notifications
-- [ ] Sequifi/CaptiveIQ commission push
-- [ ] Reports (pipeline, performance, office, financing, revenue)
-- [ ] Mobile responsive optimization
-- [ ] End-to-end testing
-- [ ] Data migration plan (active Enerflo deals)
-- [ ] Staged rollout (one office → company-wide)
+All documented in `docs/kinos-future-features.md`:
+- Post-Sale Pipeline (Quickbase bidirectional sync)
+- Site Survey & Arrivy Integration
+- Equipment Configuration (Aurora catalog mirror)
+- Pricing Engine Admin & Transparency
+- Lender API Direct Integrations
+- Change Order Management
+- Notifications (Twilio + in-app)
+- Design Queue
+- Customer Portal
+- Commission Push (Sequifi/CaptiveIQ)
+- Mobile Experience (PWA)
 
 ---
 
@@ -3081,6 +3361,12 @@ async function handleQuickbaseWebhook(payload: QuickbaseWebhookPayload) {
 | Pricing Engine | Typed TypeScript service (not configurable function graph) | Matches Enerflo's math output. Lender-specific logic in provider classes. Big.js for precision. Configurable engine deferred to post-v1 if needed. |
 | Equipment Source of Truth | Split: Aurora owns catalog, KinOS owns business logic | Aurora: component database, design-time selection, automatic adders (design conditions). KinOS: pricing, market availability, adder rules (business conditions). |
 | Deal Access Control | Assignment-based + role-based | Closer: full access. Setter: read-only. Manager: read-only on office deals. Admin: full access. RLS-enforced. |
+| Post-Sale Visibility | Quickbase remains ops SOT, KinOS provides read window + limited closer actions | Bidirectional sync: read milestones, push closer actions (cancel, change order response, reschedule) |
+| Equipment Admin | Mirror Aurora catalog in KinOS with business logic overlay | Settings → Equipment page syncs from Aurora API, adds market scoping + pricing rules |
+| Pricing Transparency | Admin can see and test pricing engine without code access | Settings → Pricing Engine page: visual waterfall, sandbox mode, audit trail |
+| Site Survey | Arrivy integration for scheduling, not just a checkbox gate | Schedule, reschedule, cancel surveys from deal detail. Gate = survey SCHEDULED (not completed). |
+| Field Service | Arrivy for surveys AND installs | Same integration layer supports future post-sale install visibility |
+| Future Features Docs | Every planned feature has a standalone explainer | `docs/kinos-future-features.md` — agents read before building to ensure current code supports future needs |
 
 ### Open Questions (Non-Blocking)
 
@@ -3141,7 +3427,12 @@ TWILIO_PHONE_NUMBER=
 # Commission
 SEQUIFI_API_KEY=
 CAPTIVEIQ_API_KEY=
-```
+
+# Arrivy (Field Service Management)
+ARRIVY_API_KEY=
+ARRIVY_BASE_URL=
+ARRIVY_WEBHOOK_SECRET=
+````
 
 ---
 
@@ -3186,7 +3477,11 @@ CAPTIVEIQ_API_KEY=
     "longitude": "-86.93239",
     "notes": "Husband not home",
     "status": "Appointment Scheduled",
-    "owner/user": { "id": 176783, "name": "Cameron Bott", "role": "Rookie - Setter" }
+    "owner/user": {
+      "id": 176783,
+      "name": "Cameron Bott",
+      "role": "Rookie - Setter"
+    }
   },
   "start_at_timezone": "US/Central",
   "appt_start_time_local": "2026-02-12 18:00:00",
