@@ -86,7 +86,7 @@ export function ProposalList({
                   <button
                     type="button"
                     aria-label="Duplicate"
-                    className="rounded p-0.5 hover:bg-muted"
+                    className="flex h-7 w-7 items-center justify-center rounded hover:bg-muted"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -98,7 +98,7 @@ export function ProposalList({
                   <button
                     type="button"
                     aria-label="Delete"
-                    className="rounded p-0.5 hover:bg-destructive/10 hover:text-destructive"
+                    className="flex h-7 w-7 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

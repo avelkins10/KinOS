@@ -308,8 +308,16 @@ export function DesignRequestForm({
             <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!canSubmit}>
-              {loading ? "Submitting…" : "Submit design request"}
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className="min-h-[44px]"
+            >
+              {loading
+                ? "Submitting…"
+                : alreadyRequested
+                  ? "Already requested"
+                  : "Submit design request"}
             </Button>
           </DialogFooter>
         </form>

@@ -303,7 +303,11 @@ export function ConsumptionForm({
       </Card>
 
       <div className="flex justify-end gap-3">
-        <Button type="submit" disabled={!isValid || loading}>
+        <Button
+          type="submit"
+          disabled={!isValid || loading}
+          className="min-h-[44px]"
+        >
           {loading ? "Saving…" : "Save consumption"}
         </Button>
       </div>

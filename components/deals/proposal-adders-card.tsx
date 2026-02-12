@@ -121,12 +121,14 @@ export function ProposalAddersCard({
                         className="w-24"
                         placeholder="Amount"
                         value={a.customAmount ?? ""}
-                        onChange={(e) =>
-                          onCustomAmountChange(
-                            a.name,
-                            Number(e.target.value) || 0,
-                          )
-                        }
+                        min={0}
+                        max={999999}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (!isNaN(val) && val >= 0 && val <= 999999) {
+                            onCustomAmountChange(a.name, val || 0);
+                          }
+                        }}
                         disabled={disabled || !a.enabled}
                       />
                     ) : null}

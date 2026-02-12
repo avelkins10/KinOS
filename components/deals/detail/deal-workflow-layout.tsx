@@ -18,6 +18,13 @@ import { WelcomeCallStep } from "./steps/welcome-call-step";
 import { PreIntakeStep } from "./steps/submission-step";
 import { ProjectSubmissionStep } from "./steps/project-submission-step";
 import { DollarSign } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function StepContent({
   stepIndex,
@@ -71,9 +78,35 @@ export function DealWorkflowLayout({
   );
 
   return (
-    <div className="flex h-full">
-      {/* Left Sidebar - Workflow Stepper */}
-      <div className="flex w-[280px] shrink-0 flex-col border-r border-border bg-card">
+    <div className="flex h-full flex-col lg:flex-row">
+      {/* Mobile Progress Bar */}
+      <div className="flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
+        <span className="text-xs font-bold text-primary">{progress}%</span>
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <Select
+          value={String(activeStepIndex)}
+          onValueChange={(v) => setActiveStepIndex(Number(v))}
+        >
+          <SelectTrigger className="h-9 w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {WORKFLOW_STEPS.map((step, i) => (
+              <SelectItem key={step.slug} value={String(i)}>
+                {step.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Left Sidebar - Workflow Stepper (desktop only) */}
+      <div className="hidden lg:flex w-[280px] shrink-0 flex-col border-r border-border bg-card">
         {/* Progress Header */}
         <div className="border-b border-border px-5 py-4">
           <div className="flex items-center justify-between mb-2">
@@ -125,7 +158,7 @@ export function DealWorkflowLayout({
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div
-          className="mx-auto max-w-3xl px-8 py-8 animate-slide-in"
+          className="mx-auto max-w-3xl px-4 py-6 lg:px-8 lg:py-8 animate-slide-in"
           key={activeStepIndex}
         >
           <StepContent
