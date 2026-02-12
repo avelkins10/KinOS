@@ -23,18 +23,20 @@ function StepContent({
   stepIndex,
   deal,
   dealDetail,
+  onDealUpdated,
 }: {
   stepIndex: number;
   deal: DealForUI;
   dealDetail?: DealDetail | null;
+  onDealUpdated?: () => void;
 }) {
   switch (stepIndex) {
     case 0:
       return <DealAssignmentStep deal={deal} dealDetail={dealDetail} />;
     case 1:
-      return <ConsumptionStep deal={deal} />;
+      return <ConsumptionStep deal={deal} onDealUpdated={onDealUpdated} />;
     case 2:
-      return <DesignsStep deal={deal} />;
+      return <DesignsStep deal={deal} onDealUpdated={onDealUpdated} />;
     case 3:
       return <ProposalStep deal={deal} dealDetail={dealDetail} />;
     case 4:
@@ -55,9 +57,11 @@ function StepContent({
 export function DealWorkflowLayout({
   deal,
   dealDetail,
+  onDealUpdated,
 }: {
   deal: DealForUI;
   dealDetail?: DealDetail | null;
+  onDealUpdated?: () => void;
 }) {
   const currentStepIndex = getStepIndexFromStage(deal.stage);
   const [activeStepIndex, setActiveStepIndex] = useState(currentStepIndex);
@@ -128,6 +132,7 @@ export function DealWorkflowLayout({
             stepIndex={activeStepIndex}
             deal={deal}
             dealDetail={dealDetail}
+            onDealUpdated={onDealUpdated}
           />
         </div>
       </div>

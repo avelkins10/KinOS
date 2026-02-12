@@ -2,7 +2,7 @@
 
 > Last updated: 2026-02-11
 > Schema verified against live Supabase database (47 tables + 2 views).
-> Epic 6 Part 1 (migration 010) complete — Aurora design fields on deals.
+> Epic 6 complete — Aurora design fields, API, webhooks, and UI (consumption form, design request, design results, status badge).
 > This is the single source of truth for the KinOS project.
 
 ---
@@ -44,7 +44,8 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 ## 3. Database Schema (Verified 2026-02-11)
 
 **Base migration:** `kinos-migration-v1.sql` (1,744 lines) — deployed 2026-02-10
-**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column), 010 (Aurora design fields on deals — design_status, consumption, design request metadata, aurora_sales_mode_url; v_deal_detail updated to 108 cols)
+**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column), 010 (Aurora design fields on deals — design_status, consumption, design request metadata, aurora_sales_mode_url; v_deal_detail updated to 108 cols), 011 (Epic 7: pricing_configs office_id, adder_templates pricing_tiers/is_manual_toggle/is_auto_apply, proposals is_goal_seek/goal_seek_target_gross/original_base_ppw), 012 (proposal_adders tier_selection + custom_amount columns, adder_templates is_customer_facing rename to is_customer_visible)
+**Seed data (local dev):** `supabase/seed/epic7-pricing-seed.sql` — 3 installer markets, 10 lenders, 12 lender products, 3 pricing configs, 36 adder templates, 13 scope rules, 9 workflow steps, 11 gate definitions, 5 test contacts, 5 test deals
 
 ### Live Object Count: 47 tables + 2 views
 
@@ -150,6 +151,7 @@ Also: cancelled, lost
 
 - `/api/deals` — Deals CRUD + search
 - `/api/deals/[id]/notes` — Deal notes
+- `/api/deals/[id]/aurora` — Aurora actions (create_project, save_consumption, submit_design_request)
 - `/api/deals/transition` — Stage transitions
 - `/api/contacts` — Contacts CRUD
 - `/api/contacts/[id]` — Contact detail + assign
@@ -197,19 +199,56 @@ RepCard is source of truth for users. KinOS syncs via:
 
 ### 5.4 Design Flow (KinOS → Aurora) — Epic 6
 
-1. Closer enters consumption data → KinOS POST /projects + PUT /consumption_profile
-2. Closer clicks "Request Design" → KinOS POST /design_requests (sla=180, auto_accept=true)
-3. Aurora designers build 3D model (async, minutes to hours)
-4. Aurora fires GET webhook to KinOS with design_request_id + status in query params
-5. KinOS calls GET /design_requests/{id} → gets design_id → GET /designs/{id}/summary
-6. Results stored on deal, stage → design_complete
-7. Closer reviews in KinOS or opens Sales Mode link
+**Three design paths:**
+
+1. **Design Team (in-house)** — Closer requests design → KinOS updates deal status + sends Slack notification (Zapier for now) → Designer picks up from queue → opens Aurora to design → syncs results back. Does NOT call Aurora's createDesignRequest API (that sends to Aurora's external paid team).
+2. **Sales Mode (self-design)** — Closer opens Aurora Sales Mode link, designs themselves. Returns sales_mode_url.
+3. **Expert Design (Aurora's team)** — Outsourced to Aurora designers via createDesignRequest API. Backup/premium option. SLA=180min, auto_accept=true.
+
+**Common steps (all paths):**
+
+- Closer enters consumption data → KinOS POST /projects + PUT /consumption_profile
+- Aurora project created at consumption step (not earlier — don't waste API on no-shows)
+- Design results stored on deal, stage → design_complete
+
+**Aurora webhooks (paths 3 only):**
+
+- Aurora fires GET webhook to KinOS with design_request_id + status in query params
+- KinOS calls GET /design_requests/{id} → gets design_id → GET /designs/{id}/summary
+
+**Current state:** Designers use Enerflo's Design Requests portal as their queue. KinOS Design Queue (Epic 10+) will replace this. See `docs/design-queue-research.md`.
 
 **Aurora webhooks are GET requests with data in URL query parameters (not POST with JSON body).**
 
-### 5.5 Proposal & Pricing Flow
+### 5.5 Proposal & Pricing Flow (Epic 7) — Implemented
 
-Design data → pricing engine (base PPW × system + adders - discounts + dealer fee) → lender terms → ITC → finalize → snapshot → advance
+Design data → pricing engine (base PPW × system + adders - discounts + dealer fee) → lender terms → ITC → finalize → snapshot → advance.
+
+**Pricing engine:** `lib/utils/pricing.ts` — Pure TypeScript with Big.js for money math. Full waterfall: base PPW × watts → + equipment → + system adders (auto) → + value adders (manual) → + tax → ÷ dealer fee factor (gross-up) → - discounts → - rebates → = gross cost → - ITC (30%) → = net cost → monthly payment. Goal-seek: inverse-solve PPW from target gross cost.
+
+**Server actions:**
+
+- `lib/actions/proposals.ts` — getProposalsByDeal, createProposal, updateProposal, finalizeProposal, unfinalizeProposal, deleteProposal, duplicateProposal
+- `lib/actions/pricing-data.ts` — getActivePricingConfig (office → market → company waterfall), getLendersWithProducts, getInstallerMarket
+- `lib/actions/aurora-pricing-sync.ts` — syncPricingToAurora, logAuroraPricingSync (push KinOS pricing to Aurora design)
+
+**UI:** `components/deals/detail/steps/proposal-step.tsx` with sub-components:
+
+- `proposal-list.tsx` — tab bar for multiple proposals per deal
+- `proposal-pricing-card.tsx` — base PPW input, goal-seek, PPW slider (min/max), live recalc
+- `proposal-adders-card.tsx` — auto-applied (locked) + manual toggle sections, tiered dropdowns, custom amount inputs
+- `proposal-financing-card.tsx` — lender/product selectors, dealer fee display, monthly payment
+- `proposal-summary-card.tsx` — full waterfall breakdown, commission base, ITC
+
+**Adder resolution:** Scope rules evaluated against deal context (state, system size, lender, equipment). `is_auto_apply=true` → system adder (locked). `is_manual_toggle=true` → value adder (rep toggles). Tiered adders use `pricing_tiers` JSONB for dropdown selection.
+
+**Key behaviors:**
+
+- All pricing recalculates on any input change (debounced 300ms)
+- Lender change → re-evaluate lender-specific adders, recalculate dealer fee + monthly payment
+- Goal-seek: closer enters target gross → engine solves for base PPW within admin min/max bounds
+- Finalize: locks proposal, sets deal.active_proposal_id, advances stage to proposal_sent, logs activity
+- Multiple proposals per deal for side-by-side comparison (loan vs lease, with/without battery)
 
 ### 5.6 Submission Flow (KinOS → Quickbase)
 
@@ -279,48 +318,58 @@ Enerflo's deal.projectSubmitted webhook is the template for Quickbase submission
 
 ## 9. Epic Completion Status
 
-| Epic | Name                           | Status         | Notes                                                                                           |
-| ---- | ------------------------------ | -------------- | ----------------------------------------------------------------------------------------------- |
-| 0    | Infrastructure                 | ✅ Complete    | Supabase, GitHub, Vercel, schema deployed                                                       |
-| 1    | Auth & User System             | ✅ Complete    | Supabase Auth, proxy.ts (Next.js 16), RepCard user sync                                         |
-| 2    | RepCard Integration            | ✅ Complete    | Connector webhook, contact/deal creation, user sync                                             |
-| 3    | Pipeline & Deal Management     | ✅ Complete    | Kanban, drag-drop, 19 stages, realtime, dashboard, deal detail                                  |
-| 4    | Leads Management               | ✅ Complete    | Leads list, lead detail page, notes, attachments, CSV import, filter presets                    |
-| 5    | Calendar & Appointments        | ✅ Complete    | 7 RepCard webhook routes, appointments table, calendar (day/week/month/list), dashboard widgets |
-| 6    | Aurora Design Integration      | 🔄 In progress | Part 1 complete (migration 010, types, docs). Part 2: Aurora API client + service layer.        |
-| 7    | Proposal & Pricing Engine      | 📋 Planned     |                                                                                                 |
-| 8    | Financing & Lender Integration | 📋 Planned     |                                                                                                 |
-| 9    | Document Signing               | 📋 Planned     |                                                                                                 |
-| 10   | Submission & Gating Engine     | 📋 Planned     |                                                                                                 |
-| 11   | Admin Panel                    | 📋 Planned     |                                                                                                 |
-| 12   | Reports & Analytics            | 📋 Planned     |                                                                                                 |
+| Epic | Name                           | Status         | Notes                                                                                                                                                                                                                                                                      |
+| ---- | ------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Infrastructure                 | ✅ Complete    | Supabase, GitHub, Vercel, schema deployed                                                                                                                                                                                                                                  |
+| 1    | Auth & User System             | ✅ Complete    | Supabase Auth, proxy.ts (Next.js 16), RepCard user sync                                                                                                                                                                                                                    |
+| 2    | RepCard Integration            | ✅ Complete    | Connector webhook, contact/deal creation, user sync                                                                                                                                                                                                                        |
+| 3    | Pipeline & Deal Management     | ✅ Complete    | Kanban, drag-drop, 19 stages, realtime, dashboard, deal detail                                                                                                                                                                                                             |
+| 4    | Leads Management               | ✅ Complete    | Leads list, lead detail page, notes, attachments, CSV import, filter presets                                                                                                                                                                                               |
+| 5    | Calendar & Appointments        | ✅ Complete    | 7 RepCard webhook routes, appointments table, calendar (day/week/month/list), dashboard widgets                                                                                                                                                                            |
+| 6    | Aurora Design Integration      | ✅ Complete    | Migration 010, API client, service layer, webhooks, UI: ConsumptionForm, DesignRequestForm, DesignResultsCard, DesignStatusBadge; consumption + designs steps in deal workflow.                                                                                            |
+| 7    | Proposal & Pricing Engine      | 🔧 In Progress | Migrations 011+012, pricing engine (Big.js waterfall), server actions (proposals, pricing-data, aurora-pricing-sync), proposal step UI (pricing/adders/financing/summary cards), seed data. Remaining: unit tests, E2E testing with live UI, production seed verification. |
+| 8    | Financing & Lender Integration | 📋 Planned     |                                                                                                                                                                                                                                                                            |
+| 9    | Document Signing               | 📋 Planned     |                                                                                                                                                                                                                                                                            |
+| 10   | Submission & Gating Engine     | 📋 Planned     |                                                                                                                                                                                                                                                                            |
+| 11   | Admin Panel                    | 📋 Planned     |                                                                                                                                                                                                                                                                            |
+| 12   | Reports & Analytics            | 📋 Planned     |                                                                                                                                                                                                                                                                            |
 
 ---
 
 ## 10. Key Architecture Decisions
 
-| Decision              | Resolution                                                                  |
-| --------------------- | --------------------------------------------------------------------------- |
-| Next.js version       | 16 (App Router). Middleware renamed to proxy.ts.                            |
-| Auth strategy         | Supabase Auth + RLS. No self-registration. Admin creates accounts.          |
-| Client component data | API routes, NOT direct server action imports                                |
-| RepCard lead flow     | Manual push via connector (not automatic webhook)                           |
-| Pipeline scope        | KinOS ends at intake_approved. Install tracking = Quickbase.                |
-| Aurora integration    | API for actions + webhooks for reactions. Both needed.                      |
-| Aurora project timing | Create at consumption step, not appointment (don't waste API on no-shows)   |
-| Aurora auto-accept    | auto_accept=true on design requests (reduce closer manual steps)            |
-| Equipment ownership   | Split: Aurora owns catalog, KinOS owns business logic/pricing               |
-| Document signing      | PandaDoc primary, SignNow fallback                                          |
-| Commission flow       | KinOS → Quickbase → Sequifi/CaptiveIQ (no direct push)                      |
-| Launch strategy       | Full cutover from Enerflo. New deals in KinOS, old deals finish in Enerflo. |
-| Pricing engine        | Typed TypeScript service with Big.js, not configurable function graph       |
+| Decision                  | Resolution                                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js version           | 16 (App Router). Middleware renamed to proxy.ts.                                                                                                                                |
+| Auth strategy             | Supabase Auth + RLS. No self-registration. Admin creates accounts.                                                                                                              |
+| Client component data     | API routes, NOT direct server action imports                                                                                                                                    |
+| RepCard lead flow         | Manual push via connector (not automatic webhook)                                                                                                                               |
+| Pipeline scope            | KinOS ends at intake_approved. Install tracking = Quickbase.                                                                                                                    |
+| Aurora integration        | API for actions + webhooks for reactions. Both needed.                                                                                                                          |
+| Aurora project timing     | Create at consumption step, not appointment (don't waste API on no-shows)                                                                                                       |
+| Aurora auto-accept        | auto_accept=true on design requests (reduce closer manual steps)                                                                                                                |
+| Equipment ownership       | Split: Aurora owns catalog, KinOS owns business logic/pricing                                                                                                                   |
+| Document signing          | PandaDoc primary, SignNow fallback                                                                                                                                              |
+| Commission flow           | KinOS → Quickbase → Sequifi/CaptiveIQ (no direct push)                                                                                                                          |
+| Launch strategy           | Full cutover from Enerflo. New deals in KinOS, old deals finish in Enerflo.                                                                                                     |
+| Pricing engine            | Typed TypeScript service with Big.js, not configurable function graph. Pure functions, zero side effects.                                                                       |
+| Adder scope rules         | Rule-based system: rule_type (state, lender, system_size_min/max, equipment) + rule_value (TEXT). is_auto_apply=true → locked system adder. is_manual_toggle=true → rep choice. |
+| Dealer fee math           | Gross-up, not additive. Positive fee: cost / (1 - fee%). Negative fee: cost / (1 / (1 + abs(fee%))).                                                                            |
+| Pricing config resolution | Waterfall: office-specific → market-specific → company default. Most specific active config wins.                                                                               |
+| Seed data strategy        | Deterministic UUIDs (b0000001..., c0000001..., etc.) for FK references. ON CONFLICT DO NOTHING for idempotent reruns.                                                           |
+| Design team workflow      | In-house designers use Enerflo queue → Aurora editor → sync back. NOT Aurora's external design API. KinOS "Design Team" = update status + Slack notify only.                    |
+| Design queue              | Epic 10+ — replace Enerflo Design Requests portal. Incoming/In Progress/Completed, designer assignment, timer, Sync from Aurora. See docs/design-queue-research.md              |
+| Zapier (interim)          | Keep Zapier→Slack for design team notifications until KinOS has native Slack integration                                                                                        |
 
 ---
 
 ## 11. Open Items / Future Work
 
 - [x] Epic 6 Part 1: Migration 010 (Aurora design fields on deals, v_deal_detail, types, docs)
-- [ ] Epic 6 Part 2+: Aurora API client, service layer, webhooks, consumption form, Sales Mode
+- [x] Epic 6 Part 2+: Aurora API client, service layer, webhooks, consumption form, design request form, design results card, design status badge, Sales Mode
+- [x] Epic 7: Proposal & pricing engine (pricing.ts, proposals/pricing-data/aurora-pricing-sync actions, migrations 011+012, seed data, proposal step UI + cards)
+- [ ] Epic 7: Unit tests for pricing engine (`lib/utils/__tests__/pricing.test.ts`)
+- [ ] Epic 7: Production seed data — Austin to verify lender rates, dealer fees, adder amounts
 - [ ] Add missing user fields: kin_id, job_title, sequifi_id, captiveiq_id, quickbase_record_id
 - [ ] Genability/UtilityAPI integration for utility rate lookup (Option B)
 - [ ] v2: Installs tab — read-only Quickbase install progress visibility
@@ -328,3 +377,21 @@ Enerflo's deal.projectSubmitted webhook is the template for Quickbase submission
 - [ ] Reporting indexes (add when building reports)
 - [ ] Review request tracking (Google reviews)
 - [ ] Change order workflow (post-v1)
+
+### Pre-Ship (Epic 6)
+
+- [ ] Fix submitDesignRequest() — "Design Team" path must skip Aurora createDesignRequest API, just update deal status + notify Slack
+- [ ] Register Aurora webhooks in Aurora dashboard (design_request_completed, design_request_rejected, performance_simulation_completed)
+
+### KinOS Design Queue (Epic 10+)
+
+See `docs/design-queue-research.md` for full spec, Enerflo workflow analysis, and payload fields.
+
+- [ ] `design_requests` table (queue, assignment, timer, sync, completion)
+- [ ] Design queue page: Incoming / In Progress / Completed / Cancelled tabs
+- [ ] Designer workflow: Start → Open in Aurora → Sync from Aurora → Complete
+- [ ] "Sync from Aurora" — pull design summary, arrays, equipment, layout image via API
+- [ ] Schema additions: panel_manufacturer, panel_wattage, inverter_manufacturer, battery_manufacturer, battery_purpose, design_arrays (JSONB), layout_image_url
+- [ ] Redesign/revision tracking (design_request.revision_of)
+- [ ] Genability (Arcadia) integration — utility lookup, tariff selection, post-solar NEM tariff
+- [ ] Direct Slack integration (replace Zapier)

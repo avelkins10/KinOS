@@ -1,13 +1,88 @@
 "use client";
 
+import React, { useState } from "react";
 import type { DealForUI } from "@/lib/deals-mappers";
-import { cn } from "@/lib/utils";
-import { Sun, Zap, BarChart3, ExternalLink, Clock, Check } from "lucide-react";
+import { DesignRequestForm } from "@/components/deals/design-request-form";
+import { DesignResultsCard } from "@/components/deals/design-results-card";
+import { DesignStatusBadge } from "@/components/deals/design-status-badge";
+import {
+  Sun,
+  Zap,
+  BarChart3,
+  ExternalLink,
+  Clock,
+  Building2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
-export function DesignsStep({ deal }: { deal: DealForUI }) {
-  const hasDesign = !!deal.systemSize;
+export function DesignsStep({
+  deal,
+  onDealUpdated,
+}: {
+  deal: DealForUI;
+  onDealUpdated?: () => void;
+}) {
+  const { toast } = useToast();
+  const [requestFormOpen, setRequestFormOpen] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
 
-  if (!hasDesign) {
+  const hasProject = !!deal.auroraProjectId;
+  const designStatus = deal.designStatus ?? "not_started";
+  const isDesignCompleted =
+    designStatus === "design_completed" || designStatus === "design_accepted";
+  const isDesignRejected = designStatus === "design_rejected";
+  const isDesignRequested =
+    designStatus === "design_requested" ||
+    designStatus === "design_in_progress";
+  const canRequestDesign =
+    hasProject && !isDesignRequested && !isDesignCompleted;
+
+  const handleCreateProject = async () => {
+    setCreatingProject(true);
+    try {
+      const res = await fetch(`/api/deals/${deal.id}/aurora`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create_project" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to create project");
+      toast({
+        title: "Aurora project created",
+        description: "You can now enter consumption and request a design.",
+      });
+      onDealUpdated?.();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description:
+          err instanceof Error ? err.message : "Failed to create project",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingProject(false);
+    }
+  };
+
+  const handleRequestRedesign = () => {
+    setRequestFormOpen(true);
+  };
+
+  const designRequestedTooltip = deal.designRequestedAt
+    ? `Requested ${new Date(deal.designRequestedAt).toLocaleDateString(
+        "en-US",
+        {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        },
+      )}`
+    : undefined;
+
+  if (!hasProject) {
     return (
       <div className="space-y-6">
         <div>
@@ -16,147 +91,172 @@ export function DesignsStep({ deal }: { deal: DealForUI }) {
             Request a design from Aurora to begin the system design process.
           </p>
         </div>
-
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-16 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-            <Sun className="h-7 w-7 text-primary" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">
-            No design yet
-          </h3>
-          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Create an Aurora project to generate a solar design for this
-            customer.
-          </p>
-          <button
-            type="button"
-            className="mt-5 flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-            style={{ boxShadow: "0 1px 3px rgba(14,165,233,0.3)" }}
-          >
-            <ExternalLink className="h-4 w-4" />
-            Create Aurora Project
-          </button>
-        </div>
+        <Card className="border-2 border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <Sun className="h-7 w-7 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">
+              No Aurora project yet
+            </h3>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              Create an Aurora project to generate a solar design for this
+              customer. You can then enter consumption and request a design.
+            </p>
+            <Button
+              type="button"
+              className="mt-5 min-h-[44px] gap-2"
+              onClick={handleCreateProject}
+              disabled={creatingProject}
+            >
+              <ExternalLink className="h-4 w-4" />
+              {creatingProject ? "Creating…" : "Create Aurora project"}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold text-foreground">Designs</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Aurora design results for this project.
+            {isDesignCompleted
+              ? "Aurora design results for this project."
+              : isDesignRejected
+                ? "Design was rejected. Request a new design below."
+                : isDesignRequested
+                  ? "Design request is in progress."
+                  : "Request a design from Aurora or open Sales Mode."}
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-full bg-success/10 border border-success/20 px-3 py-1.5">
-          <Check className="h-3.5 w-3.5 text-success" />
-          <span className="text-xs font-bold text-success">
-            Design Complete
-          </span>
-        </div>
+        <DesignStatusBadge
+          status={designStatus}
+          tooltip={isDesignRequested ? designRequestedTooltip : undefined}
+        />
       </div>
 
-      {/* Design Summary Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2 text-primary">
-            <Zap className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              System Size
-            </span>
+      {/* Consumption summary when project exists but no design yet */}
+      {!isDesignCompleted &&
+        !isDesignRejected &&
+        deal.annualKwh != null &&
+        deal.annualKwh > 0 && (
+          <div className="rounded-xl border border-border bg-muted/20 p-4">
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Consumption on file
+            </h4>
+            <div className="flex flex-wrap gap-4">
+              {deal.utilityCompany && (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {deal.utilityCompany}
+                  </span>
+                </div>
+              )}
+              {deal.annualKwh != null && deal.annualKwh > 0 && (
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {deal.annualKwh.toLocaleString()} kWh/yr
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
-            {deal.systemSize} kW
-          </p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2 text-primary">
+        )}
+
+      {/* Design requested / in progress */}
+      {isDesignRequested && !isDesignCompleted && (
+        <Card>
+          <CardContent className="py-6">
+            <div className="flex items-center gap-3 text-amber-700 dark:text-amber-300">
+              <Clock className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-medium">Design in progress</p>
+                <p className="text-sm text-muted-foreground">
+                  Aurora typically completes designs within 30 minutes to 3
+                  hours. This page will update when the design is ready.
+                </p>
+              </div>
+            </div>
+            {deal.designRequestType && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Request type: {deal.designRequestType.replace(/_/g, " ")}
+                {deal.targetOffset != null &&
+                  ` · Target offset: ${deal.targetOffset}%`}
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-4 min-h-[44px]"
+              disabled
+            >
+              Request design (already requested)
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Design completed */}
+      {isDesignCompleted && (
+        <DesignResultsCard
+          deal={deal}
+          onRequestRedesign={handleRequestRedesign}
+        />
+      )}
+
+      {/* Design rejected */}
+      {isDesignRejected && (
+        <Card className="border-red-200 dark:border-red-900/50">
+          <CardContent className="py-6">
+            {deal.rejectionReason && (
+              <p className="text-sm text-muted-foreground">
+                {deal.rejectionReason}
+              </p>
+            )}
+            <Button
+              type="button"
+              className="mt-4 min-h-[44px] gap-2"
+              onClick={() => setRequestFormOpen(true)}
+            >
+              <Zap className="h-4 w-4" />
+              Request new design
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Request design button when project exists and no design requested yet */}
+      {canRequestDesign && (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            className="min-h-[44px] gap-2"
+            onClick={() => setRequestFormOpen(true)}
+          >
             <Sun className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Panels
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
-            {deal.panelCount}
-          </p>
-          <p className="text-xs text-muted-foreground">{deal.panelBrand}</p>
+            Request design
+          </Button>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2 text-primary">
-            <BarChart3 className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Annual Prod.
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
-            {deal.annualProduction
-              ? `${(deal.annualProduction / 1000).toFixed(1)}`
-              : "--"}
-          </p>
-          <p className="text-xs text-muted-foreground">MWh/yr</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2 text-primary">
-            <Zap className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Offset
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
-            {deal.offset ?? "--"}%
-          </p>
-        </div>
-      </div>
+      )}
 
-      {/* Equipment Detail */}
-      <div className="rounded-xl border border-border p-5">
-        <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Equipment
-        </h4>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Sun className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Panel Brand</p>
-              <p className="text-sm font-semibold text-foreground">
-                {deal.panelBrand}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Zap className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Inverter</p>
-              <p className="text-sm font-semibold text-foreground">
-                {deal.inverterBrand}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Aurora Link */}
-      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-4">
-        <div className="flex items-center gap-3">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            Design completed 3 days ago
-          </span>
-        </div>
-        <button
-          type="button"
-          className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          Open in Aurora
-        </button>
-      </div>
+      <DesignRequestForm
+        dealId={deal.id}
+        designStatus={designStatus}
+        open={requestFormOpen}
+        onOpenChange={setRequestFormOpen}
+        onSuccess={() => {
+          setRequestFormOpen(false);
+          onDealUpdated?.();
+        }}
+        onCancel={() => setRequestFormOpen(false)}
+      />
     </div>
   );
 }

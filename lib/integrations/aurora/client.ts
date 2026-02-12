@@ -149,4 +149,34 @@ export const auroraClient = {
       path: tenantPath(`/inverters${query}`),
     });
   },
+
+  // === DESIGN PRICING (Epic 7: KinOS → Aurora sync) ===
+  putDesignPricing(
+    designId: string,
+    data: { price_per_watt?: number; flat_price?: number },
+  ) {
+    return auroraFetch<{ design: { id: string } }>({
+      method: "PUT",
+      path: tenantPath(`/designs/${designId}/pricing`),
+      body: { pricing: data },
+    });
+  },
+
+  postDesignAdder(
+    designId: string,
+    data: { name: string; amount?: number; price_per_watt?: number },
+  ) {
+    return auroraFetch<{ adder: { id: string } }>({
+      method: "POST",
+      path: tenantPath(`/designs/${designId}/pricing/adders`),
+      body: { adder: data },
+    });
+  },
+
+  deleteDesignAdder(designId: string, adderId: string) {
+    return auroraFetch<void>({
+      method: "DELETE",
+      path: tenantPath(`/designs/${designId}/pricing/adders/${adderId}`),
+    });
+  },
 };

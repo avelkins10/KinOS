@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { mapDealForUI } from "@/lib/deals-mappers";
 import type { DealDetail } from "@/lib/actions/deals";
 import { useDealRealtime } from "@/hooks/use-deal-realtime";
@@ -28,8 +29,11 @@ export function DealDetailClient({
   dealId,
   initialDealRaw,
 }: DealDetailClientProps) {
+  const router = useRouter();
   const liveDealRaw = useDealRealtime(dealId, initialDealRaw);
   const deal = mapDealForUI(liveDealRaw ?? initialDealRaw);
+  /** Refresh server data after Aurora actions; Realtime may not fire for supabaseAdmin writes. */
+  const onDealUpdated = () => router.refresh();
 
   return (
     <div className="flex h-full flex-col">
@@ -123,7 +127,11 @@ export function DealDetailClient({
       </div>
 
       <div className="flex-1 min-h-0">
-        <DealWorkflowLayout deal={deal} dealDetail={initialDealRaw} />
+        <DealWorkflowLayout
+          deal={deal}
+          dealDetail={initialDealRaw}
+          onDealUpdated={onDealUpdated}
+        />
       </div>
     </div>
   );

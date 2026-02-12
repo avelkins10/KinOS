@@ -2,6 +2,7 @@
 
 > Last audited: 2026-02-11 (pulled from live Supabase)
 > 47 tables + 2 views = 49 objects in public schema
+> Epic 6 UI complete (consumption form, design request/results, status badge; no schema change)
 
 ---
 

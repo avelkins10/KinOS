@@ -281,6 +281,13 @@ export async function getDeal(
   }
 }
 
+/** Force refresh deal from database (e.g. after Aurora actions). Same as getDeal. */
+export async function refreshDealData(
+  dealId: string,
+): Promise<{ data: DealDetail | null; error: string | null }> {
+  return getDeal(dealId);
+}
+
 export interface CreateDealInput {
   contactId: string;
   closerId?: string;

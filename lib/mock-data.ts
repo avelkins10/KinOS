@@ -70,6 +70,9 @@ export interface ActivityItem {
     | "note"
     | "document"
     | "proposal_sent"
+    | "proposal_created"
+    | "proposal_finalized"
+    | "proposal_unfinalized"
     | "financing_applied"
     | "system";
   description: string;

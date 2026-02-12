@@ -31,7 +31,36 @@ export interface DealForUI {
   panelBrand?: string | null;
   inverterBrand?: string | null;
   offset?: number | null;
+  /** Aurora / consumption fields */
+  auroraProjectId?: string | null;
+  auroraDesignId?: string | null;
+  auroraDesignRequestId?: string | null;
+  designStatus?: string | null;
+  monthlyKwh?: number[] | null;
+  annualKwh?: number | null;
+  utilityCompany?: string | null;
+  utilityTariff?: string | null;
+  monthlyBill?: number | null;
+  designRequestType?: string | null;
+  designRequestedAt?: string | null;
+  designCompletedAt?: string | null;
+  targetOffset?: number | null;
+  roofMaterial?: string | null;
+  auroraSalesModeUrl?: string | null;
+  rejectionReason?: string | null;
+  designRequestNotes?: string | null;
 }
+
+/** Design status values from Aurora workflow */
+export type DesignStatus =
+  | "not_started"
+  | "consumption_entered"
+  | "project_created"
+  | "design_requested"
+  | "design_in_progress"
+  | "design_completed"
+  | "design_rejected"
+  | "design_accepted";
 
 function initials(first: string, last: string): string {
   return (
@@ -104,13 +133,34 @@ export function mapDealForUI(d: DealWithRelations): DealForUI {
       d.monthly_payment != null ? Number(d.monthly_payment) : null,
     lenderProduct: d.loan_product ?? null,
     utilityAccount:
-      (contact as { utility_company?: string })?.utility_company ?? null,
+      (d as { utility_company?: string }).utility_company ??
+      (contact as { utility_company?: string })?.utility_company ??
+      null,
     annualProduction:
       d.annual_production_kwh != null ? Number(d.annual_production_kwh) : null,
     panelCount: d.panel_count != null ? Number(d.panel_count) : null,
     panelBrand: d.panel_model ?? null,
     inverterBrand: d.inverter_model ?? null,
     offset: d.offset_percentage != null ? Number(d.offset_percentage) : null,
+    auroraProjectId: d.aurora_project_id ?? null,
+    auroraDesignId: d.aurora_design_id ?? null,
+    auroraDesignRequestId: d.aurora_design_request_id ?? null,
+    designStatus: d.design_status ?? null,
+    monthlyKwh: Array.isArray(d.monthly_kwh)
+      ? (d.monthly_kwh as number[])
+      : null,
+    annualKwh: d.annual_kwh != null ? Number(d.annual_kwh) : null,
+    utilityCompany: d.utility_company ?? null,
+    utilityTariff: d.utility_tariff ?? null,
+    monthlyBill: d.monthly_bill != null ? Number(d.monthly_bill) : null,
+    designRequestType: d.design_request_type ?? null,
+    designRequestedAt: d.design_requested_at ?? null,
+    designCompletedAt: d.design_completed_at ?? null,
+    targetOffset: d.target_offset != null ? Number(d.target_offset) : null,
+    roofMaterial: d.roof_material ?? null,
+    auroraSalesModeUrl: d.aurora_sales_mode_url ?? null,
+    rejectionReason: d.rejection_reason ?? null,
+    designRequestNotes: d.design_request_notes ?? null,
   };
 }
 

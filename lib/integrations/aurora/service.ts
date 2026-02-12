@@ -153,11 +153,49 @@ export async function submitDesignRequest(
     return { sales_mode_url: salesModeUrl };
   }
 
-  // 3. Submit design request to Aurora
+  // 3a. DESIGN TEAM (in-house) — do NOT call Aurora API.
+  // KIN Home designers work from a design queue (Enerflo today, KinOS future).
+  // Aurora's createDesignRequest sends to Aurora's external paid design team.
+  if (options.design_request_type === "design_team") {
+    await supabaseAdmin
+      .from("deals")
+      .update({
+        design_request_type: "design_team",
+        design_status: "design_requested",
+        design_requested_at: new Date().toISOString(),
+        design_request_notes: options.notes,
+        target_offset: options.target_offset ?? 105,
+        roof_material: options.roof_material,
+        stage: "design_requested",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", dealId);
+
+    await supabaseAdmin.from("activities").insert({
+      deal_id: dealId,
+      title: "Design requested (in-house team)",
+      activity_type: "design_requested",
+      description: `Design requested for in-house design team`,
+      metadata: {
+        requested_by: options.requested_by,
+        type: "design_team",
+        target_offset: options.target_offset ?? 105,
+        roof_material: options.roof_material,
+      },
+    });
+
+    // TODO: Send Slack notification via Zapier webhook
+    // POST to Zapier with deal number, address, consumption summary
+    // This replaces Enerflo's design-request.created webhook
+
+    return { design_request_type: "design_team" };
+  }
+
+  // 3b. EXPERT DESIGN (Aurora's external team) — call Aurora API
   const result = await auroraClient.createDesignRequest({
     project_id: deal.aurora_project_id,
-    sla: 180, // 3 hour SLA
-    auto_accept: true, // Auto-accept when design completes
+    sla: 180,
+    auto_accept: true,
     notes: options.notes || "",
     preferred_module_id: options.preferred_module_id,
     preferred_inverter_id: options.preferred_inverter_id,
@@ -168,7 +206,6 @@ export async function submitDesignRequest(
 
   const designRequestId = result.design_request.id;
 
-  // 4. Update deal
   await supabaseAdmin
     .from("deals")
     .update({
@@ -184,12 +221,11 @@ export async function submitDesignRequest(
     })
     .eq("id", dealId);
 
-  // 5. Log activity
   await supabaseAdmin.from("activities").insert({
     deal_id: dealId,
     title: `Design requested (${options.design_request_type})`,
     activity_type: "design_requested",
-    description: `Design requested (${options.design_request_type})`,
+    description: `Design requested via Aurora (${options.design_request_type})`,
     metadata: {
       aurora_design_request_id: designRequestId,
       requested_by: options.requested_by,
