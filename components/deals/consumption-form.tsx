@@ -119,8 +119,8 @@ export function ConsumptionForm({
   const isValid =
     (parseFloat(annualKwh) > 0 || hasCompleteMonthly) &&
     utilityCompany.trim().length > 0;
-  const annualNum = parseFloat(monthlyBill);
-  const monthlyBillNum = Number.isNaN(annualNum) ? undefined : annualNum;
+  const parsedBill = parseFloat(monthlyBill);
+  const monthlyBillNum = Number.isNaN(parsedBill) ? undefined : parsedBill;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
