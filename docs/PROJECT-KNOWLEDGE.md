@@ -44,7 +44,7 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 ## 3. Database Schema (Verified 2026-02-12)
 
 **Base migration:** `kinos-migration-v1.sql` (1,744 lines) — deployed 2026-02-10
-**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column), 010 (Aurora design fields on deals — design_status, consumption, design request metadata, aurora_sales_mode_url; v_deal_detail updated to 108 cols), 011 (Epic 7: pricing_configs office_id, adder_templates pricing_tiers/is_manual_toggle/is_auto_apply, proposals is_goal_seek/goal_seek_target_gross/original_base_ppw), 012 (proposal_adders tier_selection + custom_amount columns, adder_templates is_customer_facing rename to is_customer_visible), 013 (deal_adders table + RLS, deals.aurora_proposal_id, contacts.latitude/longitude)
+**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column), 010 (Aurora design fields on deals — design_status, consumption, design request metadata, aurora_sales_mode_url; v_deal_detail updated to 108 cols), 011 (Epic 7: pricing_configs office_id, adder_templates pricing_tiers/is_manual_toggle/is_auto_apply, proposals is_goal_seek/goal_seek_target_gross/original_base_ppw), 012 (proposal_adders tier_selection + custom_amount columns, adder_templates is_customer_facing rename to is_customer_visible), 013 (deal_adders table + RLS, deals.aurora_proposal_id; contacts.latitude/longitude already existed — ADD IF NOT EXISTS was no-op)
 **Seed data (local dev):** `supabase/seed/epic7-pricing-seed.sql` — 3 installer markets, 10 lenders, 12 lender products, 3 pricing configs, 36 adder templates, 13 scope rules, 9 workflow steps, 11 gate definitions, 5 test contacts, 5 test deals
 **Full column-level schema:** `docs/schema-reference.md` (auto-generated from live DB)
 
@@ -52,7 +52,7 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 
 **Org Hierarchy (4):** companies, offices, teams, roles
 **Users (3):** users (34 cols), user_lender_credentials, user_integration_settings
-**CRM Core (8):** contacts (46 cols), deals (93 cols), proposals (72 cols), proposal_arrays, proposal_adders, proposal_discounts, deal_adders
+**CRM Core (8):** contacts (44 cols), deals (93 cols), proposals (72 cols), proposal_arrays, proposal_adders, proposal_discounts, deal_adders
 **Tags (2):** tags, deal_tags
 **Appointments (1):** appointments (24 cols) — Epic 5
 **Equipment (2):** equipment, equipment_market_availability
