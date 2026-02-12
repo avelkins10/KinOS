@@ -1,8 +1,9 @@
 # KinOS Database Audit — Live Schema
 
-> Last audited: 2026-02-11 (pulled from live Supabase)
-> 47 tables + 2 views = 49 objects in public schema
-> Epic 6 UI complete (consumption form, design request/results, status badge; no schema change)
+> Last audited: 2026-02-12 (pulled from live Supabase)
+> 51 tables + 2 views = 53 objects in public schema
+> Migration 013 applied (deal_adders, deals.aurora_proposal_id, contacts.latitude/longitude)
+> Full column-level detail: `docs/schema-reference.md`
 
 ---
 
@@ -21,14 +22,20 @@
 - **user_lender_credentials** (14 cols): per-user, per-lender credentials
 - **user_integration_settings** (7 cols): per-user integration config
 
-### CRM Core (7 tables)
+### CRM Core (8 tables)
 
-- **contacts** (44 cols): id, company_id, names, email, phone, address fields, contact_type, contact_source, repcard_customer_id, repcard_status, repcard_status_id, utility fields (company, account_number, rate_kwh, tariff_code, tariff_name), consumption fields (annual_usage_kwh, monthly_electric_bill, monthly_usage_kwh JSONB, building_sqft), genability IDs, HOA fields, roof fields, lat/lng, soft delete
-- **deals** (92 cols): id, company_id, contact_id, deal_number, stage, closer_id, setter_id, office_id, team_id, appointment fields (7), aurora fields (project_id, design_id, design_request_id, sales_mode_url), design_status (see below), consumption (monthly_kwh JSONB, annual_kwh, utility_company, utility_tariff, monthly_bill), design request metadata (design_request_type, design_requested_at, design_completed_at, design_request_notes, target_offset, roof_material), system fields (size_kw, panel_count/model, inverter_model, battery), pricing fields (gross/net price/ppw, dealer_fee, commission_base), financing fields, submission fields, active_appointment_id, active_proposal_id, install address fields, soft delete
-- **proposals** (70 cols): full pricing waterfall, design snapshot, financing terms
+- **contacts** (46 cols): id, company_id, names, email, phone, address fields, contact_type, contact_source, repcard_customer_id, repcard_status, repcard_status_id, utility fields (company, account_number, rate_kwh, tariff_code, tariff_name), consumption fields (annual_usage_kwh, monthly_electric_bill, monthly_usage_kwh JSONB, building_sqft), genability IDs, HOA fields, roof fields, latitude, longitude, soft delete
+- **deals** (93 cols): id, company_id, contact_id, deal_number, stage, closer_id, setter_id, office_id, team_id, appointment fields (7), aurora fields (project_id, design_id, design_request_id, proposal_id, sales_mode_url), design_status (see below), consumption (monthly_kwh JSONB, annual_kwh, utility_company, utility_tariff, monthly_bill), design request metadata (design_request_type, design_requested_at, design_completed_at, design_request_notes, target_offset, roof_material), system fields (size_kw, panel_count/model, inverter_model, battery), pricing fields (gross/net price/ppw, dealer_fee, commission_base), financing fields, submission fields, active_appointment_id, active_proposal_id, install address fields, soft delete
+- **proposals** (72 cols): full pricing waterfall, design snapshot, financing terms
 - **proposal_arrays** (20 cols): per-array design data (modules, pitch, azimuth, TSRF, solar access)
-- **proposal_adders** (15 cols): line-item adders with dynamic inputs
+- **proposal_adders** (17 cols): line-item adders with dynamic inputs, tier_selection, custom_amount
 - **proposal_discounts** (9 cols): line-item discounts
+- **deal_adders** (11 cols): deal_id, adder_template_id, name, amount, pricing_type, quantity, total, notes, added_by, created_at
+
+### Tags (2 tables)
+
+- **tags** (5 cols): company-scoped tag definitions with color
+- **deal_tags** (4 cols): deal-tag junction table (deal_id, tag_id, added_by, created_at)
 
 ### Appointments (1 table — Epic 5)
 
@@ -51,8 +58,8 @@
 
 ### Pricing (4 tables)
 
-- **pricing_configs** (21 cols): PPW-based pricing with adjustments, market-scoped
-- **adder_templates** (20 cols): reusable adder definitions with dynamic input schemas
+- **pricing_configs** (22 cols): PPW-based pricing with adjustments, market-scoped, office_id
+- **adder_templates** (23 cols): reusable adder definitions with dynamic input schemas, pricing_tiers, is_manual_toggle, is_auto_apply
 - **adder_scope_rules** (6 cols): inclusion/exclusion rules for adder availability
 - **installer_markets** (9 cols): state/region market definitions
 
@@ -79,6 +86,10 @@
 
 - **notes** (14 cols): deal_id or contact_id linked, visibility (team/private/all), pinnable, edit tracking, soft delete
 - **note_edits** (5 cols): previous content snapshots
+
+### Communications (1 table)
+
+- **communication_log** (19 cols): channel (email/sms/call), direction (inbound/outbound), subject, body, from_user_id, to_phone, to_email, status, external_id, provider, error_message, sent_at, delivered_at, opened_at
 
 ### History/Audit (5 tables)
 

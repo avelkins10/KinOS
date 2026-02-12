@@ -1,6 +1,7 @@
 "use client";
 
 import type { DealForUI } from "@/lib/deals-mappers";
+// TODO: Replace mock data with real Supabase query
 import { RECENT_ACTIVITY } from "@/lib/mock-data";
 import {
   Phone,

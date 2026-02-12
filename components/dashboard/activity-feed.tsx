@@ -1,5 +1,6 @@
 "use client";
 
+// TODO: Replace mock data with real Supabase query
 import { RECENT_ACTIVITY, type ActivityItem } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import {

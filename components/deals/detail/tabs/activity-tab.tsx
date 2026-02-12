@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { DealForUI } from "@/lib/deals-mappers";
 import type { DealDetail } from "@/lib/actions/deals";
+// TODO: Replace mock data with real Supabase query
 import { RECENT_ACTIVITY } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import {

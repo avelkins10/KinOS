@@ -9,3 +9,7 @@ node_modules/
 .env*.local
 .pnpm-store
 .DS_Store
+supabase/.temp/
+supabase/.branches/
+.vercel/
+*.tsbuildinfo

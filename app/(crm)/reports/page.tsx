@@ -1,5 +1,6 @@
 "use client";
 
+// TODO: Replace mock data with real Supabase query
 import { DEALS, REPS } from "@/lib/mock-data";
 import {
   BarChart3,

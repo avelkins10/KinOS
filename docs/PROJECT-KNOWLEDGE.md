@@ -1,7 +1,7 @@
 # KinOS Project Knowledge Base
 
-> Last updated: 2026-02-11
-> Schema verified against live Supabase database (47 tables + 2 views).
+> Last updated: 2026-02-12
+> Schema verified against live Supabase database (51 tables + 2 views).
 > Epic 6 complete — Aurora design fields, API, webhooks, and UI (consumption form, design request, design results, status badge).
 > This is the single source of truth for the KinOS project.
 
@@ -41,17 +41,19 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 
 ---
 
-## 3. Database Schema (Verified 2026-02-11)
+## 3. Database Schema (Verified 2026-02-12)
 
 **Base migration:** `kinos-migration-v1.sql` (1,744 lines) — deployed 2026-02-10
-**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column), 010 (Aurora design fields on deals — design_status, consumption, design request metadata, aurora_sales_mode_url; v_deal_detail updated to 108 cols), 011 (Epic 7: pricing_configs office_id, adder_templates pricing_tiers/is_manual_toggle/is_auto_apply, proposals is_goal_seek/goal_seek_target_gross/original_base_ppw), 012 (proposal_adders tier_selection + custom_amount columns, adder_templates is_customer_facing rename to is_customer_visible)
+**Additional migrations:** 002 (get_user_company_id function), 003 (seed test data), 004 (pipeline stages — superseded by 005), 005 (revert to 19 blueprint stages), 006 (filter_presets + workflow tables), 007 (appointments table + indexes + auth_user_id helper), 008 (storage attachments bucket), 009 (contact lead_status column), 010 (Aurora design fields on deals — design_status, consumption, design request metadata, aurora_sales_mode_url; v_deal_detail updated to 108 cols), 011 (Epic 7: pricing_configs office_id, adder_templates pricing_tiers/is_manual_toggle/is_auto_apply, proposals is_goal_seek/goal_seek_target_gross/original_base_ppw), 012 (proposal_adders tier_selection + custom_amount columns, adder_templates is_customer_facing rename to is_customer_visible), 013 (deal_adders table + RLS, deals.aurora_proposal_id, contacts.latitude/longitude)
 **Seed data (local dev):** `supabase/seed/epic7-pricing-seed.sql` — 3 installer markets, 10 lenders, 12 lender products, 3 pricing configs, 36 adder templates, 13 scope rules, 9 workflow steps, 11 gate definitions, 5 test contacts, 5 test deals
+**Full column-level schema:** `docs/schema-reference.md` (auto-generated from live DB)
 
-### Live Object Count: 47 tables + 2 views
+### Live Object Count: 51 tables + 2 views
 
 **Org Hierarchy (4):** companies, offices, teams, roles
 **Users (3):** users (34 cols), user_lender_credentials, user_integration_settings
-**CRM Core (7):** contacts (44 cols), deals (78 cols), proposals (70 cols), proposal_arrays, proposal_adders, proposal_discounts
+**CRM Core (8):** contacts (46 cols), deals (93 cols), proposals (72 cols), proposal_arrays, proposal_adders, proposal_discounts, deal_adders
+**Tags (2):** tags, deal_tags
 **Appointments (1):** appointments (24 cols) — Epic 5
 **Equipment (2):** equipment, equipment_market_availability
 **Financing (2):** financing_applications, financing_status_history
@@ -62,6 +64,7 @@ KinOS is a custom solar CRM replacing Enerflo for KIN Home Solar. It manages the
 **Workflow (2):** workflow_step_definitions, deal_workflow_progress
 **Files (1):** attachments
 **Notes (2):** notes, note_edits
+**Communications (1):** communication_log (19 cols)
 **History/Audit (5):** deal_stage_history, deal_assignment_history, contact_change_history, deal_snapshots, audit_log
 **Integrations (4):** webhook_events, integration_sync_log, aurora_pricing_syncs, repcard_sync_state
 **Activity (2):** activities, notifications
@@ -377,6 +380,23 @@ Enerflo's deal.projectSubmitted webhook is the template for Quickbase submission
 - [ ] Reporting indexes (add when building reports)
 - [ ] Review request tracking (Google reviews)
 - [ ] Change order workflow (post-v1)
+
+### Mock Data Debt (10 files still importing from `lib/mock-data.ts`)
+
+| File                                            | Imports              | Risk                      |
+| ----------------------------------------------- | -------------------- | ------------------------- |
+| `components/dashboard/activity-feed.tsx`        | RECENT_ACTIVITY      | HIGH — dashboard          |
+| `components/dashboard/financing-alerts.tsx`     | FINANCING_ALERTS     | HIGH — dashboard          |
+| `components/dashboard/leaderboard.tsx`          | REPS                 | HIGH — dashboard          |
+| `components/deals/deals-page-client.tsx`        | LENDERS, SOURCES     | MEDIUM — filter dropdowns |
+| `components/deals/detail/tabs/activity-tab.tsx` | RECENT_ACTIVITY      | MEDIUM — fallback         |
+| `components/deals/detail/tabs/overview-tab.tsx` | RECENT_ACTIVITY      | MEDIUM — fallback         |
+| `app/(crm)/admin/offices/page.tsx`              | OFFICES, REPS, DEALS | CRITICAL — full mock page |
+| `app/(crm)/admin/users/page.tsx`                | REPS                 | CRITICAL — full mock page |
+| `app/(crm)/reports/page.tsx`                    | DEALS, REPS          | CRITICAL — full mock page |
+| `app/(crm)/design-requests/page.tsx`            | DEALS                | HIGH — full mock page     |
+
+Each file has a `// TODO: Replace mock data with real Supabase query` comment. Replace these as pages get wired to real data (Epics 10-12).
 
 ### Pre-Ship (Epic 6)
 

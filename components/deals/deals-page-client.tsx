@@ -10,6 +10,7 @@ import type { DealForUI } from "@/lib/deals-mappers";
 import { mapDealsForUI } from "@/lib/deals-mappers";
 import type { DealWithRelations } from "@/lib/actions/deals";
 import { useDealsRealtime } from "@/hooks/use-deals-realtime";
+// TODO: Replace mock data with real Supabase query
 import { LENDERS, SOURCES } from "@/lib/mock-data";
 import { DealSearch } from "./deal-search";
 import { CreateDealDialog } from "./create-deal-dialog";

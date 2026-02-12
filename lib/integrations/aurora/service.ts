@@ -127,7 +127,7 @@ export async function submitDesignRequest(
   const { data: deal } = await supabaseAdmin
     .from("deals")
     .select(
-      "aurora_project_id, design_status, deal_number, contact_id, company_id",
+      "aurora_project_id, design_status, deal_number, contact_id, company_id, install_address, install_city, install_state, install_zip, annual_kwh, closer:users!deals_closer_id_fkey(first_name, last_name, phone)",
     )
     .eq("id", dealId)
     .single();
@@ -184,9 +184,41 @@ export async function submitDesignRequest(
       },
     });
 
-    // TODO: Send Slack notification via Zapier webhook
-    // POST to Zapier with deal number, address, consumption summary
-    // This replaces Enerflo's design-request.created webhook
+    const zapierUrl = process.env.ZAPIER_DESIGN_QUEUE_WEBHOOK;
+    if (zapierUrl) {
+      const closer = deal.closer as {
+        first_name: string;
+        last_name: string;
+        phone: string;
+      } | null;
+      try {
+        await fetch(zapierUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "design_requested",
+            deal_id: dealId,
+            deal_number: deal.deal_number,
+            address: `${deal.install_address}, ${deal.install_city}, ${deal.install_state} ${deal.install_zip}`,
+            closer_name: closer
+              ? `${closer.first_name} ${closer.last_name}`
+              : null,
+            closer_phone: closer?.phone ?? null,
+            annual_kwh: deal.annual_kwh,
+            target_offset: options.target_offset ?? 105,
+            roof_material: options.roof_material,
+            notes: options.notes,
+            requested_by: options.requested_by,
+          }),
+        });
+      } catch (err) {
+        console.warn("Zapier design queue notification failed:", err);
+      }
+    } else {
+      console.warn(
+        "ZAPIER_DESIGN_QUEUE_WEBHOOK not set — skipping design team notification",
+      );
+    }
 
     return { design_request_type: "design_team" };
   }

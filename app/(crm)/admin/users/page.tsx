@@ -1,8 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { REPS } from "@/lib/mock-data"
-import { cn } from "@/lib/utils"
+import { useState } from "react";
+// TODO: Replace mock data with real Supabase query
+import { REPS } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
 import {
   Search,
   Plus,
@@ -11,33 +12,33 @@ import {
   ShieldCheck,
   User,
   Filter,
-} from "lucide-react"
+} from "lucide-react";
 
 const roleLabels: Record<string, string> = {
   closer: "Closer",
   setter: "Setter",
   manager: "Manager",
   admin: "Admin",
-}
+};
 
 const roleBadgeColors: Record<string, string> = {
   closer: "bg-primary/15 text-primary border-primary/25",
   setter: "bg-chart-2/15 text-chart-2 border-chart-2/25",
   manager: "bg-chart-1/15 text-chart-1 border-chart-1/25",
   admin: "bg-destructive/15 text-destructive border-destructive/25",
-}
+};
 
 export default function AdminUsersPage() {
-  const [search, setSearch] = useState("")
-  const [roleFilter, setRoleFilter] = useState<string>("all")
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   const filtered = REPS.filter((rep) => {
     const matchesSearch =
       rep.name.toLowerCase().includes(search.toLowerCase()) ||
-      rep.email.toLowerCase().includes(search.toLowerCase())
-    const matchesRole = roleFilter === "all" || rep.role === roleFilter
-    return matchesSearch && matchesRole
-  })
+      rep.email.toLowerCase().includes(search.toLowerCase());
+    const matchesRole = roleFilter === "all" || rep.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
 
   return (
     <div className="p-6 lg:p-8">
@@ -83,7 +84,7 @@ export default function AdminUsersPage() {
                 "rounded-lg px-3 py-2 text-sm font-medium transition-all",
                 roleFilter === role
                   ? "bg-card text-foreground shadow-sm border border-border"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {role === "all" ? "All" : roleLabels[role]}
@@ -119,10 +120,7 @@ export default function AdminUsersPage() {
           </thead>
           <tbody className="divide-y divide-border">
             {filtered.map((rep) => (
-              <tr
-                key={rep.id}
-                className="transition-colors hover:bg-muted/30"
-              >
+              <tr key={rep.id} className="transition-colors hover:bg-muted/30">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
@@ -142,7 +140,7 @@ export default function AdminUsersPage() {
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
-                      roleBadgeColors[rep.role]
+                      roleBadgeColors[rep.role],
                     )}
                   >
                     {rep.role === "admin" ? (
@@ -186,5 +184,5 @@ export default function AdminUsersPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
