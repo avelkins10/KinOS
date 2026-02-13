@@ -55,11 +55,11 @@ export async function assembleSubmissionPayload(
     if (activeProposal) {
       const { data: proposalAdders } = await supabase
         .from("proposal_adders")
-        .select("adder_name, total_price")
+        .select("name, total")
         .eq("proposal_id", activeProposal.id);
       adders = (proposalAdders ?? []).map((a) => ({
-        name: a.adder_name ?? "",
-        amount: Number(a.total_price) || 0,
+        name: a.name ?? "",
+        amount: Number(a.total) || 0,
       }));
     }
 
@@ -112,11 +112,11 @@ export async function assembleSubmissionPayload(
         downPayment: activeProposal?.down_payment
           ? Number(activeProposal.down_payment)
           : undefined,
-        federalTaxCredit: activeProposal?.federal_tax_credit
-          ? Number(activeProposal.federal_tax_credit)
+        federalTaxCredit: activeProposal?.federal_rebate_amount
+          ? Number(activeProposal.federal_rebate_amount)
           : undefined,
-        dealerFee: activeProposal?.dealer_fee
-          ? Number(activeProposal.dealer_fee)
+        dealerFee: activeProposal?.dealer_fee_amount
+          ? Number(activeProposal.dealer_fee_amount)
           : undefined,
         adders,
       },
@@ -126,16 +126,17 @@ export async function assembleSubmissionPayload(
         productName: financingApp?.lender_product?.name ?? "",
         termMonths: financingApp?.lender_product?.term_months ?? 0,
         interestRate: Number(financingApp?.lender_product?.interest_rate) || 0,
-        approvalNumber: financingApp?.approval_number ?? undefined,
+        approvalNumber: financingApp?.external_application_id ?? undefined,
         approvalStatus: financingApp?.status ?? "",
       },
 
       contracts: {
-        allSigned: (detail.documentEnvelopes ?? []).length > 0 &&
+        allSigned:
+          (detail.documentEnvelopes ?? []).length > 0 &&
           detail.documentEnvelopes.every((e) => e.status === "signed"),
-        signedDate: detail.documentEnvelopes?.find(
-          (e) => e.status === "signed",
-        )?.signed_at ?? undefined,
+        signedDate:
+          detail.documentEnvelopes?.find((e) => e.status === "signed")
+            ?.signed_at ?? undefined,
         envelopes: (detail.documentEnvelopes ?? []).map((e) => ({
           title: e.title ?? "",
           status: e.status ?? "",
@@ -173,9 +174,7 @@ export async function assembleSubmissionPayload(
 /**
  * Submit a deal: freeze snapshot, push through submission adapter, transition stage, notify.
  */
-export async function submitDeal(
-  dealId: string,
-): Promise<{
+export async function submitDeal(dealId: string): Promise<{
   data: { snapshotId: string; submissionAttempt: number } | null;
   error: string | null;
 }> {
@@ -190,26 +189,33 @@ export async function submitDeal(
     const { data: payload, error: payloadError } =
       await assembleSubmissionPayload(dealId);
     if (payloadError || !payload) {
-      return { data: null, error: payloadError ?? "Failed to assemble payload" };
+      return {
+        data: null,
+        error: payloadError ?? "Failed to assemble payload",
+      };
     }
 
-    // 2. Count existing snapshots to determine attempt number
+    // 2. Count existing submission snapshots to determine attempt number
     const { count } = await supabase
       .from("deal_snapshots")
       .select("id", { count: "exact", head: true })
-      .eq("deal_id", dealId);
+      .eq("deal_id", dealId)
+      .eq("snapshot_type", "submission");
     const submissionAttempt = (count ?? 0) + 1;
     payload.submissionAttempt = submissionAttempt;
 
     // 3. Insert deal_snapshots row (frozen JSONB payload)
+    // submission_attempt added by migration 016
     const { data: snapshot, error: snapError } = await supabase
       .from("deal_snapshots")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .insert({
         deal_id: dealId,
-        snapshot_data: payload as unknown as Record<string, unknown>,
+        snapshot_type: "submission",
+        snapshot_data: JSON.parse(JSON.stringify(payload)),
         submission_attempt: submissionAttempt,
         created_by: user.userId,
-      })
+      } as any)
       .select("id")
       .single();
 
@@ -227,11 +233,12 @@ export async function submitDeal(
       return { data: null, error: submitError };
     }
 
-    // 5. Update deal: quickbase_record_id if returned
+    // 5. Update deal: quickbase_record_id if returned (column added by migration 016)
     if (externalId) {
       await supabase
         .from("deals")
-        .update({ quickbase_record_id: externalId })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update({ quickbase_record_id: externalId } as any)
         .eq("id", dealId);
     }
 
@@ -267,7 +274,8 @@ export async function submitDeal(
       dealId,
       type: "deal_submitted",
       title: "New Deal Submitted",
-      message: `${deal?.deal_number ?? "Deal"} submitted by ${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
+      message:
+        `${deal?.deal_number ?? "Deal"} submitted by ${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
       actionUrl: dealUrl,
     });
 
@@ -297,12 +305,11 @@ export async function rejectDeal(
       return { error: "Unauthorized" };
     }
 
-    // 1. Update deal: rejection_reasons (JSONB)
+    // 1. Update deal: rejection_reasons (JSONB, column added by migration 016)
     const { error: updateError } = await supabase
       .from("deals")
-      .update({
-        rejection_reasons: reasons as unknown as Record<string, unknown>,
-      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ rejection_reasons: reasons } as any)
       .eq("id", dealId);
 
     if (updateError) return { error: updateError.message };
@@ -352,21 +359,32 @@ export async function getSubmissionHistory(dealId: string): Promise<{
     const user = await getCurrentUser();
     if (!user?.companyId) return { data: [], error: "Unauthorized" };
 
+    // submission_attempt column added by migration 016; use raw select
     const { data, error } = await supabase
       .from("deal_snapshots")
-      .select("id, submission_attempt, created_at, created_by")
+      .select("id, created_at, created_by")
       .eq("deal_id", dealId)
-      .order("submission_attempt", { ascending: false });
+      .eq("snapshot_type", "submission")
+      .order("created_at", { ascending: false });
 
     if (error) return { data: [], error: error.message };
 
     return {
-      data: (data ?? []).map((s) => ({
-        id: s.id,
-        submissionAttempt: s.submission_attempt,
-        createdAt: s.created_at ?? "",
-        createdBy: s.created_by,
-      })),
+      data: (data ?? []).map(
+        (
+          s: {
+            id: string;
+            created_at: string | null;
+            created_by: string | null;
+          },
+          i: number,
+        ) => ({
+          id: s.id,
+          submissionAttempt: (data?.length ?? 0) - i,
+          createdAt: s.created_at ?? "",
+          createdBy: s.created_by,
+        }),
+      ),
       error: null,
     };
   } catch (e) {

@@ -4,7 +4,7 @@
 
 KinOS is an internal CRM replacing Enerflo for KIN Home's solar sales operations.
 Built with Next.js 16 (App Router), Supabase (Postgres + Auth + RLS), deployed on Vercel.
-Epics 0–9 are complete (Auth, RepCard, Pipeline, Leads, Calendar, Aurora Design, Proposal/Pricing, Financing, Document Signing + Notifications). Epic 10 (Submission & Gating) is next.
+Epics 0–10 are complete (Auth, RepCard, Pipeline, Leads, Calendar, Aurora Design, Proposal/Pricing, Financing, Document Signing + Notifications, Submission & Gating).
 
 ## Before You Start ANY Task
 
@@ -81,7 +81,8 @@ Stage constants are in `lib/constants/pipeline.ts`. Do NOT add, remove, or renam
 - **Lender APIs:** 📋 Planned — 6 lenders with API access (GoodLeap, LightReach, Sunlight, Dividend, EnFin, Skylight)
 - **Arrivy:** 📋 Planned — Site survey scheduling, field management, install visibility
 - **Document Signing:** ✅ Manual tracking complete — ManualSigningProvider, PandaDoc adapter interface ready for Phase 2
-- **Quickbase:** 📋 Planned — Submission push + post-sale bidirectional sync
+- **Submission:** ✅ Complete — ManualSubmissionProvider, SubmissionPayload interface, deal_snapshots, gate engine (13 blueprint gates)
+- **Quickbase:** 📋 Planned — QuickbaseSubmissionProvider implementation for actual push + post-sale bidirectional sync
 - **Sequifi/CaptiveIQ:** 📋 Planned — Commission push on deal milestones
 - **Twilio:** 📋 Planned — SMS/email notifications
 

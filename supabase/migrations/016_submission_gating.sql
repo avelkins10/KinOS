@@ -1,26 +1,11 @@
 -- Migration 016: Submission & Gating Engine (Epic 10)
--- New table: deal_snapshots (frozen JSONB payload per submission attempt)
+-- Alter deal_snapshots: add submission_attempt column (table already exists from prior migration)
 -- Alter deals: add quickbase_record_id, rejection_reasons (JSONB)
 -- Alter gate_completions: add value column for question/text answers
 -- Clean slate: delete old scaffolding gates, replace gate_type CHECK with 8 blueprint types
 
--- 1. New table: deal_snapshots
-CREATE TABLE deal_snapshots (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  deal_id UUID NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
-  snapshot_data JSONB NOT NULL,
-  submission_attempt INTEGER NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  created_by UUID REFERENCES users(id)
-);
-CREATE INDEX idx_deal_snapshots_deal ON deal_snapshots(deal_id);
-
--- RLS for deal_snapshots (cascades through deals.company_id)
-ALTER TABLE deal_snapshots ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "deal_snapshots_select" ON deal_snapshots FOR SELECT
-  USING (deal_id IN (SELECT id FROM deals WHERE company_id = auth_company_id()));
-CREATE POLICY "deal_snapshots_insert" ON deal_snapshots FOR INSERT
-  WITH CHECK (deal_id IN (SELECT id FROM deals WHERE company_id = auth_company_id()));
+-- 1. Alter deal_snapshots: add submission_attempt column
+ALTER TABLE deal_snapshots ADD COLUMN IF NOT EXISTS submission_attempt INTEGER NOT NULL DEFAULT 1;
 
 -- 2. Alter deals table
 ALTER TABLE deals ADD COLUMN IF NOT EXISTS quickbase_record_id TEXT;
