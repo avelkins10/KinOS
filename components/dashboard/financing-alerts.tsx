@@ -1,9 +1,8 @@
 "use client";
 
-// TODO: Replace mock data with real Supabase query
-import { FINANCING_ALERTS } from "@/lib/mock-data";
-import { AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { DashboardStats } from "@/lib/actions/dashboard";
 
 const urgencyConfig = {
   high: {
@@ -20,8 +19,29 @@ const urgencyConfig = {
   },
 };
 
-export function FinancingAlerts() {
-  const highCount = FINANCING_ALERTS.filter((a) => a.urgency === "high").length;
+export function FinancingAlerts({
+  alerts = [],
+}: {
+  alerts?: DashboardStats["financingAlerts"];
+}) {
+  const highCount = alerts.filter((a) => a.urgency === "high").length;
+
+  if (alerts.length === 0) {
+    return (
+      <div className="card-premium p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="section-title">Financing Alerts</h3>
+        </div>
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <CreditCard className="mb-2 h-6 w-6 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">
+            No pending financing actions
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card-premium p-6">
       <div className="mb-5 flex items-center justify-between">
@@ -39,12 +59,13 @@ export function FinancingAlerts() {
         )}
       </div>
       <div className="space-y-2">
-        {FINANCING_ALERTS.map((alert) => {
-          const config = urgencyConfig[alert.urgency];
+        {alerts.map((alert, idx) => {
+          const urgency = alert.urgency as keyof typeof urgencyConfig;
+          const config = urgencyConfig[urgency] ?? urgencyConfig.medium;
           const Icon = config.icon;
           return (
             <a
-              key={alert.id}
+              key={`${alert.dealId}-${idx}`}
               href={`/deals/${alert.dealId}`}
               className={cn(
                 "group flex items-center gap-3 rounded-xl border p-3.5 transition-all duration-200 hover:shadow-sm",
@@ -57,12 +78,10 @@ export function FinancingAlerts() {
                   {alert.customerName}
                 </p>
                 <p className="mt-0.5 text-xs opacity-70">
-                  {alert.lender} {"·"} {alert.status}
+                  {alert.lender} {"·"}{" "}
+                  {alert.status.replace(/_/g, " ")}
                 </p>
               </div>
-              <span className="shrink-0 text-xs font-medium opacity-60">
-                {alert.detail}
-              </span>
             </a>
           );
         })}

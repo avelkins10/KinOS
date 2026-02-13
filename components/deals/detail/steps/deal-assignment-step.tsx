@@ -79,13 +79,16 @@ export function DealAssignmentStep({
           <ConfirmRow
             icon={User}
             label="Setter"
-            value={deal.setter.name}
-            verified={true}
+            value={deal.setter?.name ?? "Not assigned"}
+            verified={!!deal.setter}
           />
           <ConfirmRow
             icon={Building2}
             label="Office"
-            value={deal.closer.office}
+            value={
+              ((deal.closer as Record<string, unknown>)?.office as string) ??
+              "—"
+            }
             verified={true}
           />
           <ConfirmRow

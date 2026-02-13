@@ -30,8 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { FileText, Sun, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const DESIGN_STAGE = "design_complete";
+import { STAGE_INDEX } from "@/lib/constants/pipeline";
 
 export function ProposalStep({
   deal,
@@ -67,14 +66,9 @@ export function ProposalStep({
   const minPpw = 2.5;
   const maxPpw = 5;
 
-  const stageIndex = [
-    "new_lead",
-    "appointment_set",
-    "appointment_sat",
-    "design_requested",
-    "design_complete",
-  ].indexOf(deal.stage);
-  const designComplete = stageIndex >= 4;
+  const dealStageIndex =
+    STAGE_INDEX[deal.stage as keyof typeof STAGE_INDEX] ?? -1;
+  const designComplete = dealStageIndex >= STAGE_INDEX["design_complete"];
   const systemSizeKw =
     deal.systemSize ??
     (dealDetail?.proposals?.[0] as { system_size_kw?: number } | undefined)

@@ -98,36 +98,70 @@ export async function getDashboardStats(
 
     const { data: financing } = await supabase
       .from("financing_applications")
-      .select("id, deal_id, status")
-      .in("status", ["stips_pending", "pending", "approved"])
+      .select("id, deal_id, status, lender:lenders(name)")
+      .in("status", [
+        "stips_pending",
+        "pending",
+        "submitted",
+        "approved",
+        "conditionally_approved",
+      ])
       .is("deleted_at", null);
     const dealIds = [...new Set((financing ?? []).map((f) => f.deal_id))];
     const financingAlerts: DashboardStats["financingAlerts"] = [];
     if (dealIds.length > 0) {
-      const { data: dealRows } = await supabase
+      let alertDealsQuery = supabase
         .from("deals")
         .select("id, contact_id")
         .in("id", dealIds)
         .eq("company_id", user.companyId);
-      for (const fa of financing ?? []) {
-        const deal = (dealRows ?? []).find((d) => d.id === fa.deal_id);
-        if (deal) {
-          const { data: contact } = await supabase
+      // Apply same role-based visibility as main deals query
+      if (user.role === "closer" && user.userId) {
+        alertDealsQuery = alertDealsQuery.eq("closer_id", user.userId);
+      } else if (
+        (user.role === "office_manager" || user.role === "regional_manager") &&
+        user.officeId
+      ) {
+        alertDealsQuery = alertDealsQuery.eq("office_id", user.officeId);
+      }
+      if (filters.closerId)
+        alertDealsQuery = alertDealsQuery.eq("closer_id", filters.closerId);
+      if (filters.officeId)
+        alertDealsQuery = alertDealsQuery.eq("office_id", filters.officeId);
+      const { data: dealRows } = await alertDealsQuery;
+      const companyDealIds = new Set((dealRows ?? []).map((d) => d.id));
+      // Batch-fetch contacts for all matching deals
+      const contactIds = [
+        ...new Set(
+          (dealRows ?? []).map((d) => d.contact_id).filter(Boolean) as string[],
+        ),
+      ];
+      const { data: contacts } = contactIds.length
+        ? await supabase
             .from("contacts")
-            .select("first_name, last_name")
-            .eq("id", deal.contact_id)
-            .single();
-          const name = contact
-            ? [contact.first_name, contact.last_name].filter(Boolean).join(" ")
-            : "Unknown";
-          financingAlerts.push({
-            dealId: fa.deal_id,
-            customerName: name,
-            lender: "—",
-            status: fa.status,
-            urgency: fa.status === "stips_pending" ? "high" : "medium",
-          });
-        }
+            .select("id, first_name, last_name")
+            .in("id", contactIds)
+        : { data: [] };
+      const contactMap = new Map(
+        (contacts ?? []).map((c) => [
+          c.id,
+          [c.first_name, c.last_name].filter(Boolean).join(" ") || "Unknown",
+        ]),
+      );
+      for (const fa of financing ?? []) {
+        if (!companyDealIds.has(fa.deal_id)) continue;
+        const deal = (dealRows ?? []).find((d) => d.id === fa.deal_id);
+        const customerName = deal?.contact_id
+          ? (contactMap.get(deal.contact_id) ?? "Unknown")
+          : "Unknown";
+        const lenderObj = Array.isArray(fa.lender) ? fa.lender[0] : fa.lender;
+        financingAlerts.push({
+          dealId: fa.deal_id,
+          customerName,
+          lender: (lenderObj as { name?: string } | null)?.name ?? "—",
+          status: fa.status,
+          urgency: fa.status === "stips_pending" ? "high" : "medium",
+        });
       }
     }
 

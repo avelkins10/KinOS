@@ -200,7 +200,14 @@ export function DashboardClient({
               />
             </div>
             <div className="space-y-6">
-              <FinancingAlerts />
+              <FinancingAlerts
+                alerts={
+                  view === "closer"
+                    ? (statsCloser?.financingAlerts ??
+                      statsAll?.financingAlerts)
+                    : statsAll?.financingAlerts
+                }
+              />
               <ActivityFeed limit={5} />
             </div>
           </div>

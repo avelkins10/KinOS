@@ -4,7 +4,7 @@
 
 KinOS is an internal CRM replacing Enerflo for KIN Home's solar sales operations.
 Built with Next.js 16 (App Router), Supabase (Postgres + Auth + RLS), deployed on Vercel.
-Epics 0–7 are complete (Auth, RepCard, Pipeline, Leads, Calendar, Aurora Design, Proposal/Pricing). Epic 8 (Financing) is next.
+Epics 0–8 are complete (Auth, RepCard, Pipeline, Leads, Calendar, Aurora Design, Proposal/Pricing, Financing). Epic 9 (Document Signing) is next.
 
 ## Before You Start ANY Task
 

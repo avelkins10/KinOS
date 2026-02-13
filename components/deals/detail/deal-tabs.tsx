@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { DealForUI } from "@/lib/deals-mappers";
+import type { DealDetail } from "@/lib/actions/deals";
 import { cn } from "@/lib/utils";
 import { OverviewTab } from "./tabs/overview-tab";
 import { ProposalsTab } from "./tabs/proposals-tab";
@@ -24,7 +25,13 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
-export function DealTabs({ deal }: { deal: DealForUI }) {
+export function DealTabs({
+  deal,
+  dealDetail,
+}: {
+  deal: DealForUI;
+  dealDetail?: DealDetail | null;
+}) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
   return (
@@ -57,8 +64,12 @@ export function DealTabs({ deal }: { deal: DealForUI }) {
       <div className="p-5 animate-slide-in" key={activeTab}>
         {activeTab === "overview" && <OverviewTab deal={deal} />}
         {activeTab === "design" && <DesignTabPlaceholder deal={deal} />}
-        {activeTab === "proposals" && <ProposalsTab deal={deal} />}
-        {activeTab === "financing" && <FinancingTab deal={deal} />}
+        {activeTab === "proposals" && (
+          <ProposalsTab deal={deal} dealDetail={dealDetail} />
+        )}
+        {activeTab === "financing" && (
+          <FinancingTab deal={deal} dealDetail={dealDetail} />
+        )}
         {activeTab === "documents" && <DocumentsTab deal={deal} />}
         {activeTab === "submission" && <SubmissionTab deal={deal} />}
         {activeTab === "activity" && <ActivityTab deal={deal} />}

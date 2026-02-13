@@ -471,6 +471,132 @@ INSERT INTO deals (id, company_id, contact_id, deal_number, closer_id, office_id
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
+-- Epic 8 Financing Seed Data
+-- Adds proposals + financing applications for deal 1 & 2
+-- ============================================================
+
+-- Proposal IDs
+-- Using deterministic UUIDs for seed data
+-- v_proposal_1a: Deal 1, finalized with GoodLeap
+-- v_proposal_1b: Deal 1, draft alternative with Mosaic
+-- v_proposal_2a: Deal 2, finalized with LightReach
+
+-- Financing application IDs
+-- v_fin_app_1: Deal 1, GoodLeap — approved
+-- v_fin_app_2: Deal 1, Mosaic — denied (multi-app scenario)
+-- v_fin_app_3: Deal 2, LightReach — submitted (awaiting decision)
+-- v_fin_app_4: Deal 2, Sunlight — stips_cleared
+
+-- Create proposals for deal 1
+INSERT INTO proposals (id, deal_id, name, display_order, status,
+  system_size_kw, panel_count, panel_model, inverter_model,
+  annual_production_kwh, base_ppw, gross_cost, gross_ppw, net_cost, net_ppw,
+  monthly_payment, lender_id, lender_product_id,
+  sales_facing_dealer_fee, finance_cost,
+  finalized_at, finalized_by, updated_by) VALUES
+  ('aa000001-0001-4000-8000-000000000001', v_deal_1, 'Proposal 1', 1, 'finalized',
+   8.20, 20, 'Hanwha Q Cells Q.PEAK DUO BLK ML-G10+ 410W', 'Enphase IQ8+',
+   13600, 3.25, 36200, 4.41, 30100, 3.67,
+   185.50, v_lender_goodleap_loan, v_prod_gl25_149,
+   1.49, 6100,
+   NOW() - INTERVAL '3 days', v_closer_id, v_closer_id),
+  ('aa000001-0002-4000-8000-000000000002', v_deal_1, 'Proposal 2', 2, 'draft',
+   8.20, 20, 'Hanwha Q Cells Q.PEAK DUO BLK ML-G10+ 410W', 'Enphase IQ8+',
+   13600, 3.50, 38500, 4.70, 32500, 3.96,
+   210.00, v_lender_mosaic, v_prod_mosaic25,
+   2.99, 7200,
+   NULL, NULL, v_closer_id)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create proposal for deal 2
+INSERT INTO proposals (id, deal_id, name, display_order, status,
+  system_size_kw, panel_count, panel_model, inverter_model,
+  annual_production_kwh, base_ppw, gross_cost, gross_ppw, net_cost, net_ppw,
+  monthly_payment, lender_id, lender_product_id,
+  sales_facing_dealer_fee, finance_cost,
+  finalized_at, finalized_by, updated_by) VALUES
+  ('aa000001-0003-4000-8000-000000000003', v_deal_2, 'Proposal 1', 1, 'finalized',
+   10.25, 25, 'Hanwha Q Cells Q.PEAK DUO BLK ML-G10+ 410W', 'SolarEdge SE10000H',
+   16500, 3.25, 42500, 4.15, 35800, 3.49,
+   245.00, v_lender_lightreach, v_prod_lr_lease,
+   0.00, 0,
+   NOW() - INTERVAL '2 days', v_closer_id, v_closer_id)
+ON CONFLICT (id) DO NOTHING;
+
+-- Update deals to appropriate stages for financing
+UPDATE deals SET stage = 'financing_approved', stage_changed_at = NOW() - INTERVAL '1 day',
+  active_proposal_id = 'aa000001-0001-4000-8000-000000000001',
+  gross_price = 36200, monthly_payment = 185.50, loan_product = 'GoodLeap 25yr 1.49%'
+WHERE id = v_deal_1;
+
+UPDATE deals SET stage = 'stips_cleared', stage_changed_at = NOW() - INTERVAL '6 hours',
+  active_proposal_id = 'aa000001-0003-4000-8000-000000000003',
+  gross_price = 42500, monthly_payment = 245.00, loan_product = 'LightReach Lease'
+WHERE id = v_deal_2;
+
+-- Financing application 1: Deal 1 + GoodLeap — APPROVED
+INSERT INTO financing_applications (id, deal_id, lender_id, lender_product_id, proposal_id,
+  loan_amount, status, submitted_at, submitted_by, status_changed_at, decision_at,
+  approved_amount, approved_rate, approved_term_months, updated_by) VALUES
+  ('ff000001-0001-4000-8000-000000000001', v_deal_1, v_lender_goodleap_loan, v_prod_gl25_149,
+   'aa000001-0001-4000-8000-000000000001',
+   36200, 'approved', NOW() - INTERVAL '2 days', v_closer_id, NOW() - INTERVAL '1 day',
+   NOW() - INTERVAL '1 day', 36200, 1.49, 300, v_closer_id)
+ON CONFLICT (id) DO NOTHING;
+
+-- Financing application 2: Deal 1 + Mosaic — DENIED (multi-app scenario)
+INSERT INTO financing_applications (id, deal_id, lender_id, lender_product_id, proposal_id,
+  loan_amount, status, submitted_at, submitted_by, status_changed_at, decision_at,
+  denial_reason, updated_by) VALUES
+  ('ff000001-0002-4000-8000-000000000002', v_deal_1, v_lender_mosaic, v_prod_mosaic25,
+   'aa000001-0001-4000-8000-000000000001',
+   36200, 'denied', NOW() - INTERVAL '3 days', v_closer_id, NOW() - INTERVAL '2 days',
+   NOW() - INTERVAL '2 days', 'Credit score below minimum threshold', v_closer_id)
+ON CONFLICT (id) DO NOTHING;
+
+-- Financing application 3: Deal 2 + LightReach — SUBMITTED (pending)
+INSERT INTO financing_applications (id, deal_id, lender_id, lender_product_id, proposal_id,
+  loan_amount, status, submitted_at, submitted_by, status_changed_at, updated_by) VALUES
+  ('ff000001-0003-4000-8000-000000000003', v_deal_2, v_lender_lightreach, v_prod_lr_lease,
+   'aa000001-0003-4000-8000-000000000003',
+   42500, 'submitted', NOW() - INTERVAL '12 hours', v_closer_id,
+   NOW() - INTERVAL '12 hours', v_closer_id)
+ON CONFLICT (id) DO NOTHING;
+
+-- Financing application 4: Deal 2 + Sunlight — STIPS CLEARED
+INSERT INTO financing_applications (id, deal_id, lender_id, lender_product_id, proposal_id,
+  loan_amount, status, submitted_at, submitted_by, status_changed_at, decision_at,
+  approved_amount, approved_rate, approved_term_months, updated_by) VALUES
+  ('ff000001-0004-4000-8000-000000000004', v_deal_2, v_lender_sunlight, v_prod_sunlight,
+   'aa000001-0003-4000-8000-000000000003',
+   42500, 'stips_cleared', NOW() - INTERVAL '2 days', v_closer_id,
+   NOW() - INTERVAL '6 hours', NOW() - INTERVAL '1 day',
+   42500, 2.99, 300, v_closer_id)
+ON CONFLICT (id) DO NOTHING;
+
+-- Status history for financing applications
+-- App 1 (GoodLeap): submitted → approved
+INSERT INTO financing_status_history (financing_application_id, from_status, to_status, changed_by, notes) VALUES
+  ('ff000001-0001-4000-8000-000000000001', NULL, 'submitted', v_closer_id, 'Application submitted to GoodLeap'),
+  ('ff000001-0001-4000-8000-000000000001', 'submitted', 'approved', v_closer_id, 'Approved — full amount, good credit');
+
+-- App 2 (Mosaic): submitted → denied
+INSERT INTO financing_status_history (financing_application_id, from_status, to_status, changed_by, notes) VALUES
+  ('ff000001-0002-4000-8000-000000000002', NULL, 'submitted', v_closer_id, 'Application submitted to Mosaic'),
+  ('ff000001-0002-4000-8000-000000000002', 'submitted', 'denied', v_closer_id, 'Denied — credit score below threshold');
+
+-- App 3 (LightReach): submitted only
+INSERT INTO financing_status_history (financing_application_id, from_status, to_status, changed_by, notes) VALUES
+  ('ff000001-0003-4000-8000-000000000003', NULL, 'submitted', v_closer_id, 'Application submitted to LightReach');
+
+-- App 4 (Sunlight): submitted → approved → stips_pending → stips_cleared
+INSERT INTO financing_status_history (financing_application_id, from_status, to_status, changed_by, notes) VALUES
+  ('ff000001-0004-4000-8000-000000000004', NULL, 'submitted', v_closer_id, 'Application submitted to Sunlight'),
+  ('ff000001-0004-4000-8000-000000000004', 'submitted', 'approved', v_closer_id, 'Approved with stips'),
+  ('ff000001-0004-4000-8000-000000000004', 'approved', 'stips_pending', v_closer_id, 'Awaiting utility bill and ID'),
+  ('ff000001-0004-4000-8000-000000000004', 'stips_pending', 'stips_cleared', v_closer_id, 'All stipulations cleared');
+
+-- ============================================================
 -- DONE. Summary:
 -- 3 installer markets (FL, CA, TX)
 -- 10 lenders + 12 lender products
@@ -481,11 +607,14 @@ ON CONFLICT (id) DO NOTHING;
 -- 11 gate definitions
 -- 5 test contacts
 -- 5 test deals (various stages + system sizes)
+-- 3 proposals (2 for deal 1, 1 for deal 2)
+-- 4 financing applications across 4 statuses
+-- 11 financing status history entries
 -- ============================================================
 
-RAISE NOTICE 'Epic 7 seed data loaded successfully.';
-RAISE NOTICE 'Deal 1 (KIN-2026-00001): FL 8.2kW — ready for proposal';
-RAISE NOTICE 'Deal 2 (KIN-2026-00002): CA 10.25kW — ready for proposal';
+RAISE NOTICE 'Epic 7+8 seed data loaded successfully.';
+RAISE NOTICE 'Deal 1 (KIN-2026-00001): FL 8.2kW — financing_approved (GoodLeap approved, Mosaic denied)';
+RAISE NOTICE 'Deal 2 (KIN-2026-00002): CA 10.25kW — stips_cleared (Sunlight cleared, LightReach pending)';
 RAISE NOTICE 'Deal 3 (KIN-2026-00003): TX — appointment sat, no design';
 RAISE NOTICE 'Deal 4 (KIN-2026-00004): FL 3.28kW — small system, tests adder triggers';
 RAISE NOTICE 'Deal 5 (KIN-2026-00005): FL — new lead';

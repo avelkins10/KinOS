@@ -49,13 +49,29 @@ export interface DealWithRelations extends DealRow {
   office?: { id: string; name: string } | null;
 }
 
+/** Financing application with joined lender/product (from getDeal) */
+export interface FinancingAppWithJoins extends FinancingAppRow {
+  lender?: {
+    id: string;
+    name: string;
+    slug: string;
+    lender_type: string;
+  } | null;
+  lender_product?: {
+    id: string;
+    name: string;
+    term_months: number | null;
+    interest_rate: number | null;
+  } | null;
+}
+
 /** Rich deal detail with all relations for the detail page */
 export interface DealDetail extends DealWithRelations {
   stageHistory: StageHistoryRow[];
   notes: NoteRow[];
   attachments: AttachmentRow[];
   assignmentHistory: AssignmentHistoryRow[];
-  financingApplications: FinancingAppRow[];
+  financingApplications: FinancingAppWithJoins[];
   proposals: ProposalRow[];
   documentEnvelopes: DocumentEnvelopeRow[];
   gateCompletions: (GateCompletionRow & {
@@ -235,7 +251,11 @@ export async function getDeal(
         .order("created_at", { ascending: false }),
       supabase
         .from("financing_applications")
-        .select("*")
+        .select(
+          `*,
+          lender:lenders(id, name, slug, lender_type),
+          lender_product:lender_products(id, name, term_months, interest_rate)`,
+        )
         .eq("deal_id", dealId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
@@ -264,7 +284,25 @@ export async function getDeal(
       notes: (notes ?? []) as NoteRow[],
       attachments: (attachments ?? []) as AttachmentRow[],
       assignmentHistory: (assignmentHistory ?? []) as AssignmentHistoryRow[],
-      financingApplications: (financingApplications ?? []) as FinancingAppRow[],
+      financingApplications: (financingApplications ?? []).map((fa) => ({
+        ...fa,
+        lender: Array.isArray((fa as Record<string, unknown>).lender)
+          ? (
+              (fa as Record<string, unknown>)
+                .lender as FinancingAppWithJoins["lender"][]
+            )[0]
+          : ((fa as Record<string, unknown>)
+              .lender as FinancingAppWithJoins["lender"]),
+        lender_product: Array.isArray(
+          (fa as Record<string, unknown>).lender_product,
+        )
+          ? (
+              (fa as Record<string, unknown>)
+                .lender_product as FinancingAppWithJoins["lender_product"][]
+            )[0]
+          : ((fa as Record<string, unknown>)
+              .lender_product as FinancingAppWithJoins["lender_product"]),
+      })) as FinancingAppWithJoins[],
       proposals: (proposals ?? []) as ProposalRow[],
       documentEnvelopes: (documentEnvelopes ?? []) as DocumentEnvelopeRow[],
       gateCompletions: (gateCompletions ?? []) as (GateCompletionRow & {
