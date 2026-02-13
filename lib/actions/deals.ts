@@ -77,6 +77,7 @@ export interface DealDetail extends DealWithRelations {
   gateCompletions: (GateCompletionRow & {
     gate_definition?: GateDefinitionRow | null;
   })[];
+  gateDefinitions: GateDefinitionRow[];
 }
 
 export interface DealsByStageResult {
@@ -226,6 +227,7 @@ export async function getDeal(
       { data: proposals },
       { data: documentEnvelopes },
       { data: gateCompletions },
+      { data: gateDefinitions },
     ] = await Promise.all([
       supabase
         .from("deal_stage_history")
@@ -276,6 +278,12 @@ export async function getDeal(
         .select("*, gate_definition:gate_definitions(*)")
         .eq("deal_id", dealId)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("gate_definitions")
+        .select("*")
+        .eq("company_id", user.companyId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true }),
     ]);
 
     const detail: DealDetail = {
@@ -308,6 +316,7 @@ export async function getDeal(
       gateCompletions: (gateCompletions ?? []) as (GateCompletionRow & {
         gate_definition?: GateDefinitionRow | null;
       })[],
+      gateDefinitions: (gateDefinitions ?? []) as GateDefinitionRow[],
     };
 
     return { data: detail, error: null };
