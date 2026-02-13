@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/actions/auth";
-import { getDashboardStats } from "@/lib/actions/dashboard";
+import { getDashboardStats, getContractAlerts } from "@/lib/actions/dashboard";
 import {
   getTodaysAppointments,
   getAppointmentOutcomesStats,
@@ -13,6 +13,7 @@ export default async function DashboardPage() {
     statsCloserResult,
     appointmentsResult,
     outcomesResult,
+    contractAlertsResult,
   ] = await Promise.all([
     getDashboardStats(),
     user?.userId
@@ -20,11 +21,13 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: null, error: null }),
     getTodaysAppointments(),
     getAppointmentOutcomesStats(7),
+    getContractAlerts(),
   ]);
   const statsAll = statsAllResult.data ?? null;
   const statsCloser = statsCloserResult.data ?? null;
   const todaysAppointments = appointmentsResult.data ?? [];
   const appointmentOutcomes = outcomesResult.data ?? null;
+  const contractAlerts = contractAlertsResult.data ?? [];
 
   return (
     <DashboardClient
@@ -32,6 +35,7 @@ export default async function DashboardPage() {
       statsCloser={statsCloser}
       todaysAppointments={todaysAppointments}
       appointmentOutcomes={appointmentOutcomes}
+      contractAlerts={contractAlerts}
     />
   );
 }

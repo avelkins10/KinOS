@@ -16,11 +16,12 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { PipelineSummary } from "@/components/dashboard/pipeline-summary";
 import { AppointmentsList } from "@/components/dashboard/appointments-list";
 import { FinancingAlerts } from "@/components/dashboard/financing-alerts";
+import { ContractAlerts } from "@/components/dashboard/contract-alerts";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { RepLeaderboard } from "@/components/dashboard/leaderboard";
 import { PipelineChart } from "@/components/dashboard/pipeline-chart";
 import { cn } from "@/lib/utils";
-import type { DashboardStats } from "@/lib/actions/dashboard";
+import type { DashboardStats, ContractAlert } from "@/lib/actions/dashboard";
 import type { AppointmentWithRelations } from "@/lib/actions/appointments";
 
 type View = "closer" | "manager";
@@ -35,6 +36,7 @@ interface DashboardClientProps {
     rescheduled: number;
     cancelled: number;
   } | null;
+  contractAlerts?: ContractAlert[];
 }
 
 export function DashboardClient({
@@ -42,6 +44,7 @@ export function DashboardClient({
   statsCloser,
   todaysAppointments = [],
   appointmentOutcomes = null,
+  contractAlerts = [],
 }: DashboardClientProps) {
   const [view, setView] = useState<View>("closer");
 
@@ -208,6 +211,7 @@ export function DashboardClient({
                     : statsAll?.financingAlerts
                 }
               />
+              <ContractAlerts alerts={contractAlerts} />
               <ActivityFeed limit={5} />
             </div>
           </div>

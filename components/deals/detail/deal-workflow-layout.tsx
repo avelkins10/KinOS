@@ -49,7 +49,13 @@ function StepContent({
     case 4:
       return <FinancingStep deal={deal} dealDetail={dealDetail} />;
     case 5:
-      return <ContractingStep deal={deal} dealDetail={dealDetail} />;
+      return (
+        <ContractingStep
+          deal={deal}
+          dealDetail={dealDetail}
+          onDealUpdated={onDealUpdated}
+        />
+      );
     case 6:
       return <WelcomeCallStep deal={deal} />;
     case 7:
@@ -97,8 +103,8 @@ export function DealWorkflowLayout({
           </SelectTrigger>
           <SelectContent>
             {WORKFLOW_STEPS.map((step, i) => (
-              <SelectItem key={step.slug} value={String(i)}>
-                {step.name}
+              <SelectItem key={step.key} value={String(i)}>
+                {step.label}
               </SelectItem>
             ))}
           </SelectContent>

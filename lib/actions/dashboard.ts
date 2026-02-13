@@ -29,6 +29,17 @@ export interface DashboardStats {
   }[];
 }
 
+export interface ContractAlert {
+  dealId: string;
+  dealNumber: string;
+  customerName: string;
+  envelopeTitle: string;
+  status: string;
+  sentAt: string | null;
+  daysSinceSent: number;
+  urgency: "high" | "medium" | "low";
+}
+
 export async function getDashboardStats(
   filters: DashboardFilters = {},
 ): Promise<{ data: DashboardStats | null; error: string | null }> {
@@ -259,6 +270,118 @@ export async function getDealCounts(): Promise<{
       newLeadCount: 0,
       activeCount: 0,
       error: e instanceof Error ? e.message : "Failed to fetch counts",
+    };
+  }
+}
+
+export async function getContractAlerts(
+  filters: DashboardFilters = {},
+): Promise<{ data: ContractAlert[]; error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const user = await getCurrentUser();
+    if (!user?.companyId) {
+      return { data: [], error: "Unauthorized" };
+    }
+
+    // Fetch envelopes that are in-flight (sent, viewed, or partially_signed)
+    const { data: envelopes, error: envError } = await supabase
+      .from("document_envelopes")
+      .select("id, deal_id, title, status, sent_at, created_at")
+      .in("status", ["sent", "viewed", "partially_signed"])
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+
+    if (envError || !envelopes?.length) {
+      return { data: [], error: envError?.message ?? null };
+    }
+
+    const dealIds = [...new Set(envelopes.map((e) => e.deal_id))];
+
+    // Fetch the deals to get company/contact/closer info
+    let dealsQuery = supabase
+      .from("deals")
+      .select("id, deal_number, contact_id, closer_id")
+      .in("id", dealIds)
+      .eq("company_id", user.companyId)
+      .is("deleted_at", null);
+
+    if (user.role === "closer" && user.userId) {
+      dealsQuery = dealsQuery.eq("closer_id", user.userId);
+    } else if (
+      (user.role === "office_manager" || user.role === "regional_manager") &&
+      user.officeId
+    ) {
+      dealsQuery = dealsQuery.eq("office_id", user.officeId);
+    }
+    if (filters.closerId)
+      dealsQuery = dealsQuery.eq("closer_id", filters.closerId);
+    if (filters.officeId)
+      dealsQuery = dealsQuery.eq("office_id", filters.officeId);
+
+    const { data: deals } = await dealsQuery;
+    if (!deals?.length) {
+      return { data: [], error: null };
+    }
+
+    const dealMap = new Map(deals.map((d) => [d.id, d]));
+    const contactIds = [
+      ...new Set(deals.map((d) => d.contact_id).filter(Boolean) as string[]),
+    ];
+    const { data: contacts } = contactIds.length
+      ? await supabase
+          .from("contacts")
+          .select("id, first_name, last_name")
+          .in("id", contactIds)
+      : { data: [] };
+    const contactMap = new Map(
+      (contacts ?? []).map((c) => [
+        c.id,
+        [c.first_name, c.last_name].filter(Boolean).join(" ") || "Unknown",
+      ]),
+    );
+
+    const now = Date.now();
+    const alerts: ContractAlert[] = [];
+
+    for (const env of envelopes) {
+      const deal = dealMap.get(env.deal_id);
+      if (!deal) continue;
+
+      const sentMs = env.sent_at ? new Date(env.sent_at).getTime() : now;
+      const daysSinceSent = Math.floor((now - sentMs) / (24 * 60 * 60 * 1000));
+
+      let urgency: "high" | "medium" | "low" = "low";
+      if (daysSinceSent > 2) urgency = "high";
+      else if (env.status === "viewed" || daysSinceSent >= 1)
+        urgency = "medium";
+
+      alerts.push({
+        dealId: deal.id,
+        dealNumber: deal.deal_number ?? "",
+        customerName: deal.contact_id
+          ? (contactMap.get(deal.contact_id) ?? "Unknown")
+          : "Unknown",
+        envelopeTitle: env.title,
+        status: env.status,
+        sentAt: env.sent_at,
+        daysSinceSent,
+        urgency,
+      });
+    }
+
+    // Sort by urgency (high first) then days since sent
+    alerts.sort((a, b) => {
+      const urgencyOrder = { high: 0, medium: 1, low: 2 };
+      const diff = urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
+      return diff !== 0 ? diff : b.daysSinceSent - a.daysSinceSent;
+    });
+
+    return { data: alerts, error: null };
+  } catch (e) {
+    return {
+      data: [],
+      error: e instanceof Error ? e.message : "Failed to fetch contract alerts",
     };
   }
 }
