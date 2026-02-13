@@ -98,7 +98,7 @@ Also: cancelled, lost
 
 ---
 
-## 4. What's Built (Epics 0–9 Complete)
+## 4. What's Built (Epics 0–10 Complete)
 
 ### Epic 0: Infrastructure ✅
 
@@ -230,16 +230,17 @@ Also: cancelled, lost
 
 ---
 
-## 7. What's Next (Epics 10–12 + Future Features)
+## 7. What's Next (Epics 11–12 + Future Features)
 
 > **Full feature explainers for every item below are in `docs/future-features.md`.** All AI agents should reference that doc before building.
 
-### Epic 10: Submission & Gating Engine
+### Epic 10: Submission & Gating Engine ✅
 
-- Gate enforcement: nothing submits until every checkbox passes
-- Frozen deal snapshot at submission time
-- Quickbase API push with full payload
-- Rejection handling with fix-and-resubmit flow
+- Gate engine: 13 pre-intake gates from blueprint §10.2, auto-evaluation for document_signed/file_uploaded/financing_status, interactive controls for checkbox/question/external_status
+- Frozen JSONB deal snapshot at submission time (deal_snapshots table)
+- ManualSubmissionProvider adapter (Quickbase API stubbed)
+- Rejection handling with structured reasons (JSONB) and fix-and-resubmit flow
+- Migration 016: deal_snapshots.submission_attempt, deals.quickbase_record_id + rejection_reasons, gate_completions.value
 
 ### Epic 11: Admin Settings Suite
 
@@ -295,13 +296,13 @@ Also: cancelled, lost
 
 ## 9. Documentation Status
 
-All primary documentation is current as of Epic 9 completion:
+All primary documentation is current as of Epic 10 completion:
 
-- `CLAUDE.md` — Epics 0-9 complete, Epic 10 next
-- `.cursor/rules/kinos.mdc` — Epics 0-9 complete, Epic 10 next
-- `docs/PROJECT-KNOWLEDGE.md` — 51 tables, 15 migrations, all API routes listed
-- `docs/schema-reference.md` — 51 tables, 952 columns
-- `docs/db-audit.md` — 51 tables + 2 views, verified 2026-02-12
+- `CLAUDE.md` — Epics 0-10 complete, Epic 11 next
+- `.cursor/rules/kinos.mdc` — Epics 0-10 complete, Epic 11 next
+- `docs/PROJECT-KNOWLEDGE.md` — 51 tables, 16 migrations, all API routes listed
+- `docs/schema-reference.md` — 51 tables, 956 columns
+- `docs/db-audit.md` — 51 tables + 2 views, migrations 001-016
 
 ### Files that may need attention:
 
