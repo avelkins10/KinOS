@@ -12,6 +12,7 @@ Epic 10 wires the submission workflow end-to-end: a configurable gate engine eva
 - **Resubmission is free.** Closer fixes issues and resubmits without manager re-approval. New snapshot per attempt.
 - **Server actions, not API routes.** Consistent with the rest of KinOS.
 - **Gate seed data from blueprint §10.2** — source of truth, not the hardcoded UI list.
+- **Clean slate for gates.** DELETE all 11 existing gate_definitions (they were scaffolding — pipeline stage machine already enforces deal progression). INSERT 13 blueprint gates fresh. Zero gate_completions exist, so no data loss.
 - **Migration 016.**
 
 ## Gate Engine
@@ -20,43 +21,48 @@ Epic 10 wires the submission workflow end-to-end: a configurable gate engine eva
 
 8 gate types, matching the `gate_definitions.gate_type` check constraint:
 
-| Type | Evaluation | Config Shape |
-|------|-----------|-------------|
-| `document_signed` | Auto — checks if all document envelopes with matching template are signed | `{ template_key: string }` |
-| `file_uploaded` | Auto — checks if attachment with matching category exists for deal | `{ file_type: string, accepted_formats?: string[] }` |
-| `financing_status` | Auto — checks deal's financing application status | `{ required_status: string[] }` |
-| `stage_reached` | Auto — checks if deal has reached a certain stage | `{ stage: string }` |
-| `field_required` | Auto — checks if a specific deal field has a value | `{ field_name: string }` |
-| `checkbox` | Manual — closer/manager clicks to confirm | `{ label: string }` |
-| `question` | Manual — closer provides an answer (text, select, boolean) | `{ question: string, answer_type: "text"\|"select"\|"boolean", options?: string[] }` |
-| `external_status` | External — status from external system, with checkbox fallback | `{ system: string, label: string, required_status?: string[], fallback: "checkbox" }` |
+| Type               | Evaluation                                                                | Config Shape                                                                          |
+| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `document_signed`  | Auto — checks if all document envelopes with matching template are signed | `{ template_key: string }`                                                            |
+| `file_uploaded`    | Auto — checks if attachment with matching category exists for deal        | `{ file_type: string, accepted_formats?: string[] }`                                  |
+| `financing_status` | Auto — checks deal's financing application status                         | `{ required_status: string[] }`                                                       |
+| `stage_reached`    | Auto — checks if deal has reached a certain stage                         | `{ stage: string }`                                                                   |
+| `field_required`   | Auto — checks if a specific deal field has a value                        | `{ field_name: string }`                                                              |
+| `checkbox`         | Manual — closer/manager clicks to confirm                                 | `{ label: string }`                                                                   |
+| `question`         | Manual — closer provides an answer (text, select, boolean)                | `{ question: string, answer_type: "text"\|"select"\|"boolean", options?: string[] }`  |
+| `external_status`  | External — status from external system, with checkbox fallback            | `{ system: string, label: string, required_status?: string[], fallback: "checkbox" }` |
 
 ### Auto-Evaluation
 
 `evaluateGates(dealId)` runs on page load and can be triggered on demand:
+
 - For each auto gate type (`document_signed`, `file_uploaded`, `financing_status`, `stage_reached`, `field_required`), check deal state against `conditions` JSONB
 - If condition passes and no completion exists, auto-create one in `gate_completions`
 - If condition no longer passes (e.g., contract got voided), mark completion as incomplete
 - `external_status` gates fall back to `checkbox` behavior until the external integration is built
 - `checkbox` and `question` gates are never auto-evaluated — user must interact
 
-### 13 Default Gates (from blueprint §10.2)
+### 13 Pre-Intake Checklist Gates (from blueprint §10.2)
 
-Seeded into `gate_definitions`:
+**Clean slate:** All 11 existing gates are deleted (pipeline stage machine already enforces deal progression — a deal can't reach `submission_ready` without passing through `design_complete`, `financing_approved`, `contract_signed`, etc.). These 13 are the things the pipeline **can't** enforce automatically.
 
-1. Install Agreement Signed (`document_signed`)
-2. Loan/Lender Docs Signed (`financing_status`)
-3. Utility Bill Uploaded (`file_uploaded`)
-4. CallPilot Welcome Call Completed (`checkbox`)
-5. Site Survey Scheduled (`external_status`, fallback: `checkbox`)
-6. Additional Work Needed? (`question`, select)
-7. Shading Issues? (`question`, select)
-8. Offset Below 100%? (`question`, select)
-9. Design Preferences (`question`, text)
-10. New Move-In? (`question`, boolean)
-11. Lender Welcome Call Scheduled (`checkbox`)
-12. Customer Photo ID Collected (`checkbox`)
-13. Next Steps Verified with Customer (`checkbox`)
+All gates: `required_for_stage = submission_ready`, `is_required = true`, `is_active = true`.
+
+| #   | Name                              | `gate_type`        | `conditions` JSONB                                                                                                                                                     |
+| --- | --------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Install Agreement Signed          | `document_signed`  | `{"template_key":"install_agreement"}`                                                                                                                                 |
+| 2   | Loan/Lender Docs Signed           | `financing_status` | `{"required_status":["approved","stips_cleared"]}`                                                                                                                     |
+| 3   | Utility Bill Uploaded             | `file_uploaded`    | `{"file_type":"utility_bill"}`                                                                                                                                         |
+| 4   | CallPilot Welcome Call Completed  | `checkbox`         | `{"label":"CallPilot welcome call completed"}`                                                                                                                         |
+| 5   | Site Survey Scheduled             | `external_status`  | `{"system":"arrivy","label":"Site survey scheduled","fallback":"checkbox"}`                                                                                            |
+| 6   | Additional Work Needed?           | `question`         | `{"question":"Additional work needed?","answer_type":"select","options":["None","Roof Work","Panel Upgrade","Main Panel Upgrade","Trenching","Tree Removal","Other"]}` |
+| 7   | Shading Issues?                   | `question`         | `{"question":"Any shading issues?","answer_type":"select","options":["None","Minor","Moderate","Significant"]}`                                                        |
+| 8   | Offset Below 100%?                | `question`         | `{"question":"Is offset below 100%?","answer_type":"select","options":["No - 100%+","Yes - Customer Aware","Yes - Needs Discussion"]}`                                 |
+| 9   | Design Preferences                | `question`         | `{"question":"Design preferences or special notes","answer_type":"text"}`                                                                                              |
+| 10  | New Move-In?                      | `question`         | `{"question":"Is this a new move-in?","answer_type":"boolean"}`                                                                                                        |
+| 11  | Lender Welcome Call Scheduled     | `checkbox`         | `{"label":"Lender welcome call scheduled"}`                                                                                                                            |
+| 12  | Customer Photo ID Collected       | `checkbox`         | `{"label":"Customer photo ID collected"}`                                                                                                                              |
+| 13  | Next Steps Verified with Customer | `checkbox`         | `{"label":"Next steps verified with customer"}`                                                                                                                        |
 
 ## Submission Flow
 
@@ -94,8 +100,12 @@ Seeded into `gate_definitions`:
 ```typescript
 interface SubmissionProvider {
   name: string;
-  submit(payload: SubmissionPayload): Promise<{ externalId?: string; error?: string }>;
-  getStatus(externalId: string): Promise<{ status: string; rejectionReasons?: string[] }>;
+  submit(
+    payload: SubmissionPayload,
+  ): Promise<{ externalId?: string; error?: string }>;
+  getStatus(
+    externalId: string,
+  ): Promise<{ status: string; rejectionReasons?: string[] }>;
 }
 ```
 
@@ -117,36 +127,54 @@ interface SubmissionPayload {
 
   // Customer
   customer: {
-    firstName: string; lastName: string;
-    email: string; phone: string;
-    address: string; city: string; state: string; zip: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
   };
 
   // System
   system: {
-    sizeKw: number; panelCount: number; panelModel: string;
-    inverterModel: string; batteryModel?: string; batteryCount?: number;
-    annualProductionKwh: number; offsetPercentage: number;
+    sizeKw: number;
+    panelCount: number;
+    panelModel: string;
+    inverterModel: string;
+    batteryModel?: string;
+    batteryCount?: number;
+    annualProductionKwh: number;
+    offsetPercentage: number;
   };
 
   // Pricing
   pricing: {
-    grossPrice: number; netPrice: number; grossPpw: number;
-    monthlyPayment?: number; downPayment?: number;
-    federalTaxCredit?: number; dealerFee?: number;
+    grossPrice: number;
+    netPrice: number;
+    grossPpw: number;
+    monthlyPayment?: number;
+    downPayment?: number;
+    federalTaxCredit?: number;
+    dealerFee?: number;
     adders: Array<{ name: string; amount: number }>;
   };
 
   // Financing
   financing: {
-    lenderName: string; productName: string;
-    termMonths: number; interestRate: number;
-    approvalNumber?: string; approvalStatus: string;
+    lenderName: string;
+    productName: string;
+    termMonths: number;
+    interestRate: number;
+    approvalNumber?: string;
+    approvalStatus: string;
   };
 
   // Contracts
   contracts: {
-    allSigned: boolean; signedDate?: string;
+    allSigned: boolean;
+    signedDate?: string;
     envelopes: Array<{ title: string; status: string; signedAt?: string }>;
   };
 
@@ -166,6 +194,7 @@ interface SubmissionPayload {
 ## Schema Changes (Migration 016)
 
 ### New table: `deal_snapshots`
+
 ```sql
 CREATE TABLE deal_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -179,6 +208,7 @@ CREATE INDEX idx_deal_snapshots_deal ON deal_snapshots(deal_id);
 ```
 
 ### Alter `deals` table
+
 ```sql
 ALTER TABLE deals ADD COLUMN IF NOT EXISTS quickbase_record_id TEXT;
 ALTER TABLE deals ADD COLUMN IF NOT EXISTS submission_payload JSONB;
@@ -186,12 +216,28 @@ ALTER TABLE deals ADD COLUMN IF NOT EXISTS rejection_reasons TEXT[];
 ```
 
 ### Alter `gate_completions` table
+
 ```sql
 ALTER TABLE gate_completions ADD COLUMN IF NOT EXISTS value TEXT;
 ```
 
-### Update `gate_definitions.gate_type` check constraint
-Replace current types (`auto_status`, `manual_check`, `approval_required`, `lender_specific`) with blueprint types (`document_signed`, `checkbox`, `question`, `financing_status`, `stage_reached`, `field_required`). Keep `file_uploaded` and `external_status` which already exist.
+### Clean slate for `gate_definitions`
+
+```sql
+-- Delete all 11 existing gates (pipeline stage machine makes them redundant)
+DELETE FROM gate_completions; -- zero rows exist, but safe cleanup
+DELETE FROM gate_definitions WHERE company_id = 'a0000001-0001-4000-8000-000000000001';
+
+-- Replace CHECK constraint with all 8 blueprint types
+ALTER TABLE gate_definitions DROP CONSTRAINT gate_definitions_gate_type_check;
+ALTER TABLE gate_definitions ADD CONSTRAINT gate_definitions_gate_type_check
+  CHECK (gate_type = ANY (ARRAY[
+    'document_signed', 'file_uploaded', 'financing_status',
+    'stage_reached', 'field_required', 'checkbox', 'question', 'external_status'
+  ]));
+```
+
+13 new gate definitions inserted via seed file (`epic10-gates-seed.sql`).
 
 ## Server Actions
 
@@ -207,12 +253,14 @@ Replace current types (`auto_status`, `manual_check`, `approval_required`, `lend
 ## UI Components (rewrites)
 
 ### `submission-step.tsx` (PreIntakeStep)
+
 - DB-driven gate list instead of hardcoded
 - Auto-evaluation on mount
 - Gate type renderers: checkbox toggle, question input (text/select/boolean), file upload status, auto-check status badge
 - Progress bar with required/optional distinction
 
 ### `project-submission-step.tsx` (ProjectSubmissionStep)
+
 - Real review summary (system, pricing, financing, contracts, gate answers)
 - Submission button → real flow (payload + snapshot + advance)
 - Rejection state: shows reasons, resubmit button
@@ -227,17 +275,17 @@ Replace current types (`auto_status`, `manual_check`, `approval_required`, `lend
 
 ## Files
 
-| File | Action |
-|------|--------|
-| `supabase/migrations/016_submission_gating.sql` | New — deal_snapshots, deals columns, gate schema updates |
-| `supabase/seed/epic10-gates-seed.sql` | New — 13 gate definitions from blueprint §10.2 |
-| `lib/integrations/submission/types.ts` | New — SubmissionProvider interface, SubmissionPayload |
-| `lib/integrations/submission/manual-provider.ts` | New — ManualSubmissionProvider (no-op) |
-| `lib/actions/gates.ts` | New — gate evaluation, completion CRUD, getGateStatus |
-| `lib/actions/submission.ts` | New — assemblePayload, submitDeal, rejectDeal, history |
-| `components/deals/detail/steps/submission-step.tsx` | Rewrite — DB-driven gate checklist |
-| `components/deals/detail/steps/project-submission-step.tsx` | Rewrite — real submission flow |
-| `docs/PROJECT-KNOWLEDGE.md` | Update — migration 016, new files |
-| `CLAUDE.md` | Update — Epic 10 status |
-| `.cursor/rules/kinos.mdc` | Update — Epic 10 status |
-| `docs/kinos-vision-and-state.md` | Update — Epic 10 complete |
+| File                                                        | Action                                                     |
+| ----------------------------------------------------------- | ---------------------------------------------------------- |
+| `supabase/migrations/016_submission_gating.sql`             | New — deal_snapshots, deals columns, gate schema updates   |
+| `supabase/seed/epic10-gates-seed.sql`                       | New — DELETE old 11 gates, INSERT 13 blueprint §10.2 gates |
+| `lib/integrations/submission/types.ts`                      | New — SubmissionProvider interface, SubmissionPayload      |
+| `lib/integrations/submission/manual-provider.ts`            | New — ManualSubmissionProvider (no-op)                     |
+| `lib/actions/gates.ts`                                      | New — gate evaluation, completion CRUD, getGateStatus      |
+| `lib/actions/submission.ts`                                 | New — assemblePayload, submitDeal, rejectDeal, history     |
+| `components/deals/detail/steps/submission-step.tsx`         | Rewrite — DB-driven gate checklist                         |
+| `components/deals/detail/steps/project-submission-step.tsx` | Rewrite — real submission flow                             |
+| `docs/PROJECT-KNOWLEDGE.md`                                 | Update — migration 016, new files                          |
+| `CLAUDE.md`                                                 | Update — Epic 10 status                                    |
+| `.cursor/rules/kinos.mdc`                                   | Update — Epic 10 status                                    |
+| `docs/kinos-vision-and-state.md`                            | Update — Epic 10 complete                                  |

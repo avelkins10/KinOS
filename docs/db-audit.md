@@ -2,7 +2,7 @@
 
 > Last audited: 2026-02-12 (pulled from live Supabase)
 > 51 tables + 2 views = 53 objects in public schema
-> Migration 013 applied (deal_adders, deals.aurora_proposal_id, contacts.latitude/longitude)
+> Migrations 001-015 applied (latest: 014 adder_scope_rules RLS, 015 document_templates constraints)
 > Full column-level detail: `docs/schema-reference.md`
 
 ---
