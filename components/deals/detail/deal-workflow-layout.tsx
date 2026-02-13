@@ -59,9 +59,21 @@ function StepContent({
     case 6:
       return <WelcomeCallStep deal={deal} />;
     case 7:
-      return <PreIntakeStep deal={deal} dealDetail={dealDetail} />;
+      return (
+        <PreIntakeStep
+          deal={deal}
+          dealDetail={dealDetail}
+          onDealUpdated={onDealUpdated}
+        />
+      );
     case 8:
-      return <ProjectSubmissionStep deal={deal} dealDetail={dealDetail} />;
+      return (
+        <ProjectSubmissionStep
+          deal={deal}
+          dealDetail={dealDetail}
+          onDealUpdated={onDealUpdated}
+        />
+      );
     default:
       return null;
   }

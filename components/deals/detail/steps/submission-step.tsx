@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import type { DealForUI } from "@/lib/deals-mappers";
 import type { DealDetail } from "@/lib/actions/deals";
 import { cn } from "@/lib/utils";
@@ -7,142 +8,328 @@ import {
   Check,
   Shield,
   Upload,
-  AlertTriangle,
+  CheckSquare,
+  MessageSquare,
+  ExternalLink,
   ClipboardCheck,
+  Loader2,
 } from "lucide-react";
+import {
+  evaluateGates,
+  completeGate,
+  uncompleteGate,
+  type GateWithStatus,
+} from "@/lib/actions/gates";
+import { transitionDealStage } from "@/lib/actions/deals";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 
-interface Gate {
-  id: string;
-  label: string;
-  type: "auto" | "manual" | "upload";
-  passed: boolean;
-  detail?: string;
-}
+// ── Gate type icon + label mapping ──────────────────────────────
 
-function getGates(deal: DealForUI): Gate[] {
-  const hasDesign = !!deal.systemSize;
-  const hasLender = !!deal.lender;
-  const hasValue = deal.dealValue > 0;
-  const isSigned = ["contract_sent", "contract_signed"].includes(deal.stage);
-  const isSubmitted = [
-    "submission_ready",
-    "submitted",
-    "intake_approved",
-    "intake_rejected",
-  ].includes(deal.stage);
-
-  const financingGatePassed =
-    hasLender &&
-    [
-      "financing_approved",
-      "stips_pending",
-      "stips_cleared",
-      "contract_sent",
-      "contract_signed",
-      "submission_ready",
-      "submitted",
-      "intake_approved",
-      "intake_rejected",
-    ].includes(deal.stage);
-
-  return [
-    {
-      id: "g1",
-      label: "Design completed in Aurora",
-      type: "auto",
-      passed: hasDesign,
-      detail: hasDesign ? "Aurora verified" : undefined,
-    },
-    {
-      id: "g2",
-      label: "Proposal finalized",
-      type: "auto",
-      passed: hasValue,
-      detail: hasValue ? "Auto-verified" : undefined,
-    },
-    {
-      id: "g3",
-      label: "Financing approved",
-      type: "auto",
-      passed: financingGatePassed,
-      detail: hasLender ? (deal.lender ?? undefined) : undefined,
-    },
-    {
-      id: "g4",
-      label: "All contracts signed",
-      type: "auto",
-      passed: isSigned,
-      detail: isSigned ? "DocuSign" : undefined,
-    },
-    {
-      id: "g5",
-      label: "Welcome call completed",
-      type: "manual",
-      passed: isSubmitted || isSigned,
-      detail: isSigned ? "Completed by Sarah L." : undefined,
-    },
-    {
-      id: "g6",
-      label: "Utility bill uploaded",
-      type: "upload",
-      passed: isSigned,
-    },
-    { id: "g7", label: "Photo ID verified", type: "upload", passed: isSigned },
-    {
-      id: "g8",
-      label: "Site photos uploaded",
-      type: "upload",
-      passed: isSubmitted,
-    },
-    {
-      id: "g9",
-      label: "HOA approval (if applicable)",
-      type: "manual",
-      passed: isSubmitted,
-      detail: isSubmitted ? "N/A - No HOA" : undefined,
-    },
-    {
-      id: "g10",
-      label: "Manager approval",
-      type: "manual",
-      passed: isSubmitted,
-      detail: isSubmitted ? "Sarah L." : undefined,
-    },
-  ];
-}
-
-const typeLabels = {
-  auto: { bg: "bg-primary/10 text-primary", label: "Auto" },
-  manual: { bg: "bg-accent/10 text-accent", label: "Manual" },
-  upload: { bg: "bg-chart-4/10 text-chart-4", label: "Upload" },
+const GATE_TYPE_CONFIG: Record<
+  string,
+  {
+    icon: typeof Check;
+    bg: string;
+    label: string;
+  }
+> = {
+  document_signed: {
+    icon: Shield,
+    bg: "bg-primary/10 text-primary",
+    label: "Auto",
+  },
+  file_uploaded: {
+    icon: Upload,
+    bg: "bg-chart-4/10 text-chart-4",
+    label: "Upload",
+  },
+  financing_status: {
+    icon: Shield,
+    bg: "bg-primary/10 text-primary",
+    label: "Auto",
+  },
+  checkbox: {
+    icon: CheckSquare,
+    bg: "bg-accent/10 text-accent",
+    label: "Manual",
+  },
+  question: {
+    icon: MessageSquare,
+    bg: "bg-chart-3/10 text-chart-3",
+    label: "Question",
+  },
+  external_status: {
+    icon: ExternalLink,
+    bg: "bg-accent/10 text-accent",
+    label: "External",
+  },
 };
+
+const AUTO_TYPES = ["document_signed", "file_uploaded", "financing_status"];
+
+// ── Gate Item Renderer ──────────────────────────────────────────
+
+function GateItem({
+  gate,
+  dealId,
+  onUpdate,
+}: {
+  gate: GateWithStatus;
+  dealId: string;
+  onUpdate: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [textValue, setTextValue] = useState(gate.value ?? "");
+  const config = GATE_TYPE_CONFIG[gate.gate_type] ?? GATE_TYPE_CONFIG.checkbox;
+  const Icon = config.icon;
+  const isAuto = AUTO_TYPES.includes(gate.gate_type);
+  const conditions = (gate.conditions ?? {}) as Record<string, unknown>;
+
+  const handleCheckboxToggle = async () => {
+    setSaving(true);
+    if (gate.isComplete) {
+      await uncompleteGate(dealId, gate.id);
+    } else {
+      await completeGate(dealId, gate.id);
+    }
+    onUpdate();
+    setSaving(false);
+  };
+
+  const handleSelectChange = async (value: string) => {
+    setSaving(true);
+    await completeGate(dealId, gate.id, value);
+    onUpdate();
+    setSaving(false);
+  };
+
+  const handleBooleanToggle = async (checked: boolean) => {
+    setSaving(true);
+    if (checked) {
+      await completeGate(dealId, gate.id, "Yes");
+    } else {
+      await uncompleteGate(dealId, gate.id);
+    }
+    onUpdate();
+    setSaving(false);
+  };
+
+  const handleTextBlur = async () => {
+    if (textValue === (gate.value ?? "")) return;
+    setSaving(true);
+    if (textValue.trim()) {
+      await completeGate(dealId, gate.id, textValue.trim());
+    } else {
+      await uncompleteGate(dealId, gate.id);
+    }
+    onUpdate();
+    setSaving(false);
+  };
+
+  // Render the interaction control based on gate type
+  const renderControl = () => {
+    if (isAuto) return null; // Auto gates are read-only
+
+    if (
+      gate.gate_type === "checkbox" ||
+      gate.gate_type === "external_status"
+    ) {
+      return (
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleCheckboxToggle}
+          className={cn(
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all",
+            gate.isComplete
+              ? "border-success bg-success"
+              : "border-border hover:border-primary",
+          )}
+        >
+          {saving ? (
+            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+          ) : gate.isComplete ? (
+            <Check className="h-3 w-3 text-success-foreground" strokeWidth={3} />
+          ) : null}
+        </button>
+      );
+    }
+
+    if (gate.gate_type === "question") {
+      const answerType = conditions.answer_type as string;
+
+      if (answerType === "select") {
+        const options = (conditions.options as string[]) ?? [];
+        return (
+          <Select
+            value={gate.value ?? ""}
+            onValueChange={handleSelectChange}
+            disabled={saving}
+          >
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      }
+
+      if (answerType === "boolean") {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {gate.isComplete ? "Yes" : "No"}
+            </span>
+            <Switch
+              checked={gate.isComplete}
+              onCheckedChange={handleBooleanToggle}
+              disabled={saving}
+            />
+          </div>
+        );
+      }
+
+      // text type
+      return (
+        <Input
+          value={textValue}
+          onChange={(e) => setTextValue(e.target.value)}
+          onBlur={handleTextBlur}
+          placeholder="Enter answer..."
+          className="h-8 w-[200px] text-xs"
+          disabled={saving}
+        />
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-xl border p-4 transition-all",
+        gate.isComplete
+          ? "border-success/20 bg-success/5"
+          : "border-border bg-card",
+      )}
+    >
+      {/* Status icon */}
+      {gate.isComplete ? (
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-success">
+          <Check
+            className="h-3.5 w-3.5 text-success-foreground"
+            strokeWidth={3}
+          />
+        </div>
+      ) : (
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-border">
+          <Icon className="h-3 w-3 text-muted-foreground/40" />
+        </div>
+      )}
+
+      {/* Label + detail */}
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            "text-sm font-medium",
+            gate.isComplete ? "text-success" : "text-foreground",
+          )}
+        >
+          {gate.name}
+        </p>
+        {gate.value && gate.gate_type === "question" && (
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {gate.value}
+          </p>
+        )}
+        {gate.isComplete && gate.completion?.completed_at && (
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {new Date(gate.completion.completed_at).toLocaleDateString()}
+          </p>
+        )}
+      </div>
+
+      {/* Control or type badge */}
+      <div className="flex items-center gap-2">
+        {renderControl()}
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase",
+            config.bg,
+          )}
+        >
+          {config.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ──────────────────────────────────────────────
 
 export function PreIntakeStep({
   deal,
   dealDetail,
+  onDealUpdated,
 }: {
   deal: DealForUI;
   dealDetail?: DealDetail | null;
+  onDealUpdated?: () => void;
 }) {
-  const gates =
-    dealDetail?.gateCompletions?.length &&
-    dealDetail.gateCompletions.some((g) => g.gate_definition)
-      ? dealDetail.gateCompletions.map((g) => ({
-          id: g.id,
-          label: g.gate_definition?.name ?? "Gate",
-          type: (g.gate_definition?.gate_type === "manual_check"
-            ? "manual"
-            : g.gate_definition?.gate_type === "file_uploaded"
-              ? "upload"
-              : "auto") as "auto" | "manual" | "upload",
-          passed: g.is_complete ?? false,
-          detail: g.completed_at
-            ? new Date(g.completed_at).toLocaleDateString()
-            : undefined,
-        }))
-      : getGates(deal);
-  const passedCount = gates.filter((g) => g.passed).length;
-  const allPassed = passedCount === gates.length;
+  const [gates, setGates] = useState<GateWithStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadGates = useCallback(async () => {
+    const { data } = await evaluateGates(deal.id);
+    setGates(data);
+    setLoading(false);
+  }, [deal.id]);
+
+  useEffect(() => {
+    loadGates();
+  }, [loadGates]);
+
+  // Auto-advance: when all required gates pass and deal is at contract_signed
+  useEffect(() => {
+    if (loading || gates.length === 0) return;
+    const requiredGates = gates.filter((g) => g.is_required);
+    const allPassed = requiredGates.every((g) => g.isComplete);
+
+    if (deal.stage === "contract_signed" && allPassed) {
+      transitionDealStage(deal.id, "submission_ready").then(() => {
+        onDealUpdated?.();
+      });
+    }
+  }, [gates, loading, deal.stage, deal.id, onDealUpdated]);
+
+  const passedCount = gates.filter((g) => g.isComplete).length;
+  const allPassed = gates.length > 0 && passedCount === gates.length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">
+          Loading gates...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -183,7 +370,9 @@ export function PreIntakeStep({
                 "h-full rounded-full transition-all duration-500",
                 allPassed ? "bg-success" : "bg-primary",
               )}
-              style={{ width: `${(passedCount / gates.length) * 100}%` }}
+              style={{
+                width: `${gates.length > 0 ? (passedCount / gates.length) * 100 : 0}%`,
+              }}
             />
           </div>
         </div>
@@ -192,57 +381,12 @@ export function PreIntakeStep({
       {/* Gates */}
       <div className="space-y-2">
         {gates.map((gate) => (
-          <div
+          <GateItem
             key={gate.id}
-            className={cn(
-              "flex items-center gap-3 rounded-xl border p-4 transition-all",
-              gate.passed
-                ? "border-success/20 bg-success/5"
-                : "border-border bg-card",
-            )}
-          >
-            {gate.passed ? (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-success">
-                <Check
-                  className="h-3.5 w-3.5 text-success-foreground"
-                  strokeWidth={3}
-                />
-              </div>
-            ) : (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-border">
-                {gate.type === "upload" ? (
-                  <Upload className="h-3 w-3 text-muted-foreground/40" />
-                ) : gate.type === "auto" ? (
-                  <Shield className="h-3 w-3 text-muted-foreground/40" />
-                ) : (
-                  <AlertTriangle className="h-3 w-3 text-warning/60" />
-                )}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p
-                className={cn(
-                  "text-sm font-medium",
-                  gate.passed ? "text-success" : "text-foreground",
-                )}
-              >
-                {gate.label}
-              </p>
-              {gate.detail && (
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {gate.detail}
-                </p>
-              )}
-            </div>
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase",
-                typeLabels[gate.type].bg,
-              )}
-            >
-              {typeLabels[gate.type].label}
-            </span>
-          </div>
+            gate={gate}
+            dealId={deal.id}
+            onUpdate={loadGates}
+          />
         ))}
       </div>
     </div>
