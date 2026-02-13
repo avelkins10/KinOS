@@ -94,7 +94,7 @@ export async function getContacts(
     const limit = Math.min(pagination.limit ?? 50, 100);
     const offset = pagination.offset ?? 0;
 
-    let filterContactIds: string[] | null = null;
+    let filterContactIds: string[] | { exclude: Set<string> } | null = null;
     const nowIso = new Date().toISOString();
 
     if (
@@ -230,9 +230,10 @@ export async function getContacts(
       "owner",
       "nextAppointment",
     ];
-    const sortBy = allowedSort.includes(filters.sortBy ?? "")
-      ? (filters.sortBy as ContactSortField)
-      : "created_at";
+    const sortBy =
+      filters.sortBy && allowedSort.includes(filters.sortBy)
+        ? filters.sortBy
+        : "created_at";
     const sortDir = filters.sortDir === "asc" ? "asc" : "desc";
     const ascending = sortDir === "asc";
 

@@ -130,7 +130,7 @@ export async function syncPricingToAurora(
           .eq("id", dealId)
           .single()
       ).data?.aurora_project_id ?? "",
-      {},
+      { base_ppw: 0, adders: [] },
       "error",
       [],
       message,
@@ -151,9 +151,12 @@ export async function logAuroraPricingSync(
     deal_id: dealId,
     aurora_project_id: auroraProjectId,
     sync_type: "full_sync",
-    request_data: payloadSent as unknown as Record<string, unknown>,
+    request_data:
+      payloadSent as unknown as import("@/lib/supabase/database.types").Json,
     response_data: auroraAdderIds.length
-      ? { aurora_adder_ids: auroraAdderIds }
+      ? ({
+          aurora_adder_ids: auroraAdderIds,
+        } as unknown as import("@/lib/supabase/database.types").Json)
       : null,
     status,
     error_message: errorMessage ?? null,

@@ -16,21 +16,31 @@ import {
   Send,
 } from "lucide-react";
 
-const typeIcons = {
+const typeIcons: Record<string, typeof ArrowRightLeft> = {
   stage_change: ArrowRightLeft,
   note: MessageSquare,
   document: FileText,
   proposal: FileCheck,
+  proposal_sent: Send,
+  proposal_created: FileCheck,
+  proposal_finalized: FileCheck,
+  proposal_unfinalized: FileCheck,
   financing: Landmark,
+  financing_applied: Landmark,
   system: Cpu,
 };
 
-const typeColors = {
+const typeColors: Record<string, string> = {
   stage_change: "text-primary bg-primary/10",
   note: "text-accent bg-accent/10",
   document: "text-chart-4 bg-chart-4/10",
   proposal: "text-chart-2 bg-chart-2/10",
+  proposal_sent: "text-chart-2 bg-chart-2/10",
+  proposal_created: "text-chart-2 bg-chart-2/10",
+  proposal_finalized: "text-chart-2 bg-chart-2/10",
+  proposal_unfinalized: "text-chart-2 bg-chart-2/10",
   financing: "text-warning bg-warning/10",
+  financing_applied: "text-warning bg-warning/10",
   system: "text-muted-foreground bg-muted",
 };
 

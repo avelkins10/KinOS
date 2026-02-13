@@ -133,12 +133,7 @@ export function DesignResultsCard({
                 </p>
               </div>
             </div>
-            {(
-              deal as {
-                batteryModel?: string | null;
-                batteryCount?: number | null;
-              }
-            ).batteryModel && (
+            {deal.batteryModel && (
               <div className="flex items-center gap-3 sm:col-span-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Battery className="h-5 w-5" />
@@ -146,9 +141,8 @@ export function DesignResultsCard({
                 <div>
                   <p className="text-xs text-muted-foreground">Battery</p>
                   <p className="text-sm font-semibold text-foreground">
-                    {(deal as { batteryModel?: string }).batteryModel}
-                    {(deal as { batteryCount?: number }).batteryCount != null &&
-                      ` × ${(deal as { batteryCount: number }).batteryCount}`}
+                    {deal.batteryModel}
+                    {deal.batteryCount != null && ` × ${deal.batteryCount}`}
                   </p>
                 </div>
               </div>

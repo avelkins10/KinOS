@@ -30,16 +30,16 @@ export function CreateLeadDialog({
 }: CreateLeadDialogProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [duplicates, setDuplicates] =
-    useState<
-      {
+  const [duplicates, setDuplicates] = useState<
+    | {
         id: string;
         name: string;
         phone: string | null;
         email: string | null;
         owner: string | null;
       }[]
-    >(null);
+    | null
+  >(null);
   const [pendingPayload, setPendingPayload] = useState<Record<
     string,
     unknown

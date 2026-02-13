@@ -34,7 +34,7 @@ export interface CreateAppointmentInput {
   scheduledEnd?: Date | string | null;
   location?: string | null;
   notes?: string | null;
-  appointmentType?: "in_home" | "virtual" | "phone";
+  appointmentType?: "in_home" | "virtual" | "phone" | "follow_up";
 }
 
 export interface UpdateAppointmentInput {
@@ -42,7 +42,7 @@ export interface UpdateAppointmentInput {
   scheduledEnd?: Date | string | null;
   location?: string | null;
   notes?: string | null;
-  appointmentType?: "in_home" | "virtual" | "phone";
+  appointmentType?: "in_home" | "virtual" | "phone" | "follow_up";
   status?: Appointment["status"];
 }
 

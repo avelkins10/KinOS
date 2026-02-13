@@ -38,21 +38,13 @@ export async function getFilterPresets(
       .order("created_at", { ascending: false });
 
     if (error) return { data: [], error: error.message };
-    const list = (rows ?? []).map(
-      (r: {
-        id: string;
-        name: string;
-        filters: Record<string, unknown>;
-        entity_type: string;
-        created_at: string | null;
-      }) => ({
-        id: r.id,
-        name: r.name,
-        filters: r.filters ?? {},
-        entity_type: r.entity_type,
-        created_at: r.created_at,
-      }),
-    );
+    const list = (rows ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      filters: (r.filters ?? {}) as Record<string, unknown>,
+      entity_type: r.entity_type,
+      created_at: r.created_at,
+    }));
     return { data: list, error: null };
   } catch (e) {
     return {
@@ -76,8 +68,10 @@ export async function saveFilterPreset(
 
     const insert = {
       user_id: user.userId,
+      company_id: user.companyId,
       name: name.trim(),
-      filters,
+      filters:
+        filters as unknown as import("@/lib/supabase/database.types").Json,
       entity_type: entityType,
     };
 

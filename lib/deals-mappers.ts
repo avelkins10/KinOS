@@ -30,6 +30,8 @@ export interface DealForUI {
   panelCount?: number | null;
   panelBrand?: string | null;
   inverterBrand?: string | null;
+  batteryModel?: string | null;
+  batteryCount?: number | null;
   offset?: number | null;
   /** Aurora / consumption fields */
   auroraProjectId?: string | null;
@@ -141,6 +143,8 @@ export function mapDealForUI(d: DealWithRelations): DealForUI {
     panelCount: d.panel_count != null ? Number(d.panel_count) : null,
     panelBrand: d.panel_model ?? null,
     inverterBrand: d.inverter_model ?? null,
+    batteryModel: d.battery_model ?? null,
+    batteryCount: d.battery_count != null ? Number(d.battery_count) : null,
     offset: d.offset_percentage != null ? Number(d.offset_percentage) : null,
     auroraProjectId: d.aurora_project_id ?? null,
     auroraDesignId: d.aurora_design_id ?? null,

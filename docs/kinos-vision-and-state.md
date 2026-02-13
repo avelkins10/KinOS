@@ -1,5 +1,6 @@
 # KinOS — Vision, Current State & Roadmap
-### February 12, 2026
+
+### Last updated: February 12, 2026
 
 ---
 
@@ -10,18 +11,21 @@ KinOS is KIN Home's custom solar sales platform, replacing Enerflo. It manages e
 **The pitch:** KIN Home pays $7,000–$15,000/month for Enerflo. KinOS replaces it for ~$40–150/month in infrastructure costs, while being purpose-built for how KIN actually operates — not a generic platform with features you'll never use.
 
 ### What KinOS IS:
+
 - The deal lifecycle management platform (appointment → submission)
 - The margin/pricing management layer (PPW, adders, dealer fees, commissions)
 - The configurable deal submission gating engine (nothing gets submitted until every box is checked)
 - The integration hub connecting RepCard, Aurora, lenders, doc signing, Quickbase, Sequifi, and Twilio
 
 ### What KinOS IS NOT:
+
 - A canvassing tool (RepCard handles door-knocking and lead capture)
 - A design tool (Aurora handles solar design and proposals)
 - A proposal generator (Aurora generates the customer-facing proposal)
 - An operations/project management tool (Quickbase handles post-submission: install, permitting, inspection, PTO)
 
 ### The Ecosystem:
+
 ```
 RepCard (canvassing) → KinOS (sales CRM) → Quickbase (ops/install)
                           ↕                      ↕
@@ -35,25 +39,26 @@ RepCard (canvassing) → KinOS (sales CRM) → Quickbase (ops/install)
 
 ## 2. Tech Stack
 
-| Layer | Technology | Notes |
-|-------|-----------|-------|
-| Frontend | Next.js 16 (App Router) | TypeScript strict, Tailwind CSS, shadcn/ui |
-| Backend | Supabase | Postgres + Auth + RLS + Storage + Edge Functions |
-| Hosting | Vercel | Auto-deploys from main branch |
-| Auth | Supabase Auth | Email/password, no self-registration, admin creates accounts |
-| Middleware | proxy.ts | Next.js 16 pattern (NOT middleware.ts) |
-| Package Manager | pnpm | — |
+| Layer           | Technology              | Notes                                                        |
+| --------------- | ----------------------- | ------------------------------------------------------------ |
+| Frontend        | Next.js 16 (App Router) | TypeScript strict, Tailwind CSS, shadcn/ui                   |
+| Backend         | Supabase                | Postgres + Auth + RLS + Storage + Edge Functions             |
+| Hosting         | Vercel                  | Auto-deploys from main branch                                |
+| Auth            | Supabase Auth           | Email/password, no self-registration, admin creates accounts |
+| Middleware      | proxy.ts                | Next.js 16 pattern (NOT middleware.ts)                       |
+| Package Manager | pnpm                    | —                                                            |
 
 ### Infrastructure:
-| Resource | URL/ID |
-|----------|--------|
-| GitHub | github.com/avelkins10/KinOS (private) |
-| Supabase | tmfbggewmqcwryhzgrct.supabase.co |
-| Vercel (v0 design) | v0-kin-os-crm-design.vercel.app |
-| Vercel (production) | kin-os-one.vercel.app |
-| RepCard API | app.repcard.com/api/ |
-| Aurora API | api.aurorasolar.com |
-| Aurora Tenant | 034b1c47-310a-460f-9d5d-b625dd354f12 |
+
+| Resource            | URL/ID                                |
+| ------------------- | ------------------------------------- |
+| GitHub              | github.com/avelkins10/KinOS (private) |
+| Supabase            | tmfbggewmqcwryhzgrct.supabase.co      |
+| Vercel (v0 design)  | v0-kin-os-crm-design.vercel.app       |
+| Vercel (production) | kin-os-one.vercel.app                 |
+| RepCard API         | app.repcard.com/api/                  |
+| Aurora API          | api.aurorasolar.com                   |
+| Aurora Tenant       | 034b1c47-310a-460f-9d5d-b625dd354f12  |
 
 ---
 
@@ -84,6 +89,7 @@ Also: cancelled, lost
 ```
 
 **Key rules:**
+
 - Pipeline ENDS at intake_approved. Everything after lives in Quickbase.
 - Terminal stages: intake_approved, cancelled, lost
 - Revivable: lost → appointment_set (deals can come back to life)
@@ -92,20 +98,23 @@ Also: cancelled, lost
 
 ---
 
-## 4. What's Built (Epics 0–6 Complete)
+## 4. What's Built (Epics 0–9 Complete)
 
 ### Epic 0: Infrastructure ✅
+
 - Supabase client setup (browser, server, admin)
 - Environment variables, TypeScript types from live schema
 - Folder structure, middleware (proxy.ts)
 
 ### Epic 1: Authentication & User System ✅
+
 - Email/password login via Supabase Auth
 - Role-based access (admin, closer, office_manager, setter, viewer)
 - Auth context provider, session management
 - RepCard user sync
 
 ### Epic 2: RepCard Integration ✅
+
 - 7 webhook handlers for RepCard events:
   - appointment-set, appointment-update, appointment-outcome
   - status-change, contact-type-change, closer-update
@@ -113,6 +122,7 @@ Also: cancelled, lost
 - User sync between RepCard and KinOS
 
 ### Epic 3: Pipeline & Deal Management ✅
+
 - Kanban board with drag-drop stage transitions
 - 19-stage pipeline with validation rules
 - Real-time updates via Supabase Realtime
@@ -120,18 +130,21 @@ Also: cancelled, lost
 - Deal detail page with all relations
 
 ### Epic 4: Leads Management ✅
+
 - Leads list with search, filtering, pagination
 - Lead detail page
 - Notes, attachments, CSV import
 - Filter presets
 
 ### Epic 5: Calendar & Appointments ✅
+
 - Appointments table with full CRUD
 - Calendar views: day, week, month, list
 - Dashboard appointment widgets
 - All 7 RepCard webhook routes feeding appointment data
 
 ### Epic 6: Aurora Design Integration ✅
+
 - Aurora API client (project creation, consumption profiles, design requests)
 - Aurora service layer
 - Webhook handlers (GET-based, query params)
@@ -142,33 +155,51 @@ Also: cancelled, lost
   2. Sales Mode self-design (closer designs in Aurora directly)
   3. Expert Design via Aurora's team (API-based, backup option)
 
----
+### Epic 7: Proposal & Pricing Engine ✅
 
-## 5. What's Built But Needs Production Data (Epic 7)
-
-### Epic 7: Proposal & Pricing Engine ✅ (code complete, needs real data)
-
-**Pricing Engine** (`lib/utils/pricing.ts`):
-- Pure TypeScript with Big.js for money math
+- Pure TypeScript pricing engine with Big.js for money math
 - Full waterfall: base PPW × watts → + adders → + dealer fee → - discounts → = gross → - ITC → = net → monthly payment
 - Goal-seek: type a target gross cost and PPW auto-calculates backwards
-- All functions are pure with unit tests
-
-**Proposal Builder UI:**
 - Multiple proposals per deal (compare GoodLeap vs LightReach side by side)
-- Pricing card with PPW input, min/max slider, goal-seek toggle
-- Adders card: auto-applied (locked, system-triggered) + manual toggle (closer picks)
-- Financing card: lender/product dropdowns, dealer fee display, monthly payment
-- Summary card: full waterfall breakdown
-- Save draft / Finalize / Unfinalize (admin only) / Duplicate
+- Adder scope rules auto-evaluate against deal context
+- Server actions for full proposal lifecycle (create/update/finalize/duplicate/delete)
+- Aurora pricing sync pushes PPW + adders back to Aurora design
 
-**Server Actions:**
-- createProposal, updateProposal, finalizeProposal, unfinalizeProposal, deleteProposal, duplicateProposal
-- getActivePricingConfig (office → market → company waterfall)
-- getAdderTemplatesForDeal (scope rules evaluated against deal context)
-- getLendersWithProducts (filtered by state availability)
+### Epic 8: Financing ✅
+
+- Financing application tracking: applied → approved → stips_pending → stips_cleared
+- Lender + product selection from proposal data
+- Stipulation management with upload + deadline tracking
+- Deal auto-advances through financing pipeline stages
+- Dashboard financing alerts widget
+
+### Epic 9: Contracting & Notifications ✅
+
+- **Document Signing:** ManualSigningProvider (adapter pattern, PandaDoc interface ready)
+- Contract packet send: creates envelopes from all active templates, populates merge fields
+- Envelope status tracking: created → sent → viewed → signed with timestamp trail
+- Auto-advance: all envelopes signed → deal moves contract_sent → contract_signed
+- Merge field assembly from deal + contact + proposal + financing data
+- **Notifications:** In-app notification system with Supabase Realtime
+- Notification bell in sidebar with unread count badge
+- emitNotification + emitNotificationToRole server actions
+- Dashboard contract alerts widget (aging contracts, viewed-but-unsigned)
+
+---
+
+## 5. Production Data Status
+
+**Seed data loaded:**
+
+- 1 company (KIN Home), 2 offices (FL, CA), 5 roles, 2 teams, 5 users
+- 10 lenders, 12 products, 3 pricing configs
+- 36 adder templates across 8 categories with 13 scope rules
+- 9 workflow steps, 11 gate definitions
+- 7 contacts (FL/CA/TX), 7 deals across pipeline stages
+- 4 document templates, 6 envelopes, 6 notifications (Epic 9 seed)
 
 **What needs real data before go-live:**
+
 - Lender product rates/terms/dealer fees (currently placeholder)
 - Base PPW per market (seeded as FL=$3.10, CA=$3.50, default=$3.25 — needs verification)
 - Adder amounts (seeded from Enerflo screenshots — needs Austin to verify current)
@@ -177,20 +208,15 @@ Also: cancelled, lost
 
 ## 6. Database State
 
-### Current: 48 tables + 2 views
-- Base migration (kinos-migration-v1.sql): 38 tables
-- Migrations 002–013 applied
-- Migration 013 added `deal_adders` table
-- Migration 014 drafted (deal_tags + communication_log) — NOT yet applied
+### Current: 51 tables + 2 views
 
-### Production Seed v4 (ready to load):
-- 1 company (KIN Home), 2 offices (FL, CA), 5 roles, 2 teams, 5 users
-- 10 lenders, 12 products, 3 pricing configs
-- 36 adder templates across 8 categories with 13 scope rules
-- 9 workflow steps, 11 gate definitions
-- 7 contacts (FL/CA/TX), 7 deals across pipeline stages
+- Base migration (kinos-migration-v1.sql): 38 tables
+- Migrations 002–015 applied
+- Migration 014: adder_scope_rules RLS policy
+- Migration 015: document_templates check constraint expansion (manual provider, new doc types)
 
 ### Key tables by domain:
+
 **Core:** companies, offices, roles, teams, users
 **CRM:** contacts, deals, deal_stage_history, deal_assignment_history, notes, activities, attachments
 **Pipeline:** workflow_step_definitions, gate_definitions, gate_completions, deal_workflow_progress
@@ -198,50 +224,44 @@ Also: cancelled, lost
 **Proposals:** proposals, proposal_adders, proposal_discounts
 **Financing:** lenders, lender_products, financing_applications, user_lender_credentials
 **Documents:** document_templates, document_envelopes
+**Notifications:** notifications
 **Integrations:** webhook_events, integration_sync_log, repcard_sync_state, aurora_pricing_syncs
 **Calendar:** appointments, filter_presets
 
 ---
 
-## 7. What's Next (Epics 8–12 + Future Features)
+## 7. What's Next (Epics 10–12 + Future Features)
 
 > **Full feature explainers for every item below are in `docs/future-features.md`.** All AI agents should reference that doc before building.
 
-### Epic 8: Financing Step
-- Submit financing application from finalized proposal
-- Track approval status, manage stips with upload + deadlines
-- Deal auto-advances through financing stages
-- Foundation for lender API integrations (manual first, API later)
+### Epic 10: Submission & Gating Engine
 
-### Epic 9: Contracting & Document Signing
-- Contract status tracking (draft → sent → viewed → signed)
-- Manual tracking first, PandaDoc/SignNow integration later
-- Merge fields auto-populate from proposal data
-
-### Epic 10: Submission & Quickbase Integration
 - Gate enforcement: nothing submits until every checkbox passes
 - Frozen deal snapshot at submission time
 - Quickbase API push with full payload
 - Rejection handling with fix-and-resubmit flow
 
 ### Epic 11: Admin Settings Suite
+
 - Users, Offices, Teams, Lenders, Pricing, Equipment, Adders, Gates, Workflow, Integrations
 - Everything business-configurable without developer intervention
 - Audit trail on all config changes
 
 ### Epic 12: Reports & Analytics
+
 - Pipeline velocity, close rates, revenue tracking
 - Financing approval rates by lender
 - Filterable by date range, office, closer
 
 ### Major Future Features (documented in docs/future-features.md):
+
 - **Post-Sale Pipeline** — Bidirectional Quickbase sync, closer visibility into install/permit/PTO milestones, closer actions (cancel, change order response, reschedule)
 - **Site Survey & Arrivy Integration** — Schedule/reschedule/cancel site surveys via Arrivy API, survey status on deal detail, gate requirement (scheduled) before submission. Arrivy also handles installs — foundation for post-sale field visibility.
 - **Equipment Configuration** — Aurora catalog mirror with market scoping, pricing overrides, adder triggers
 - **Pricing Engine Admin** — Visual waterfall, sandbox/test mode, audit trail
 - **Lender API Integrations** — One-click financing submission to all 6 lender partners
 - **Change Order Management** — Formal workflow for post-sale deal changes with pricing impact and approval chains
-- **Notifications** — In-app + email + SMS via Twilio, triggered by deal events
+- **Notifications (email/SMS)** — Extend existing in-app system with Twilio email + SMS channels
 - **Design Queue** — Enerflo design portal replacement for the in-house design team
 - **Customer Portal** — Self-service project tracking for homeowners
 - **Commission Push** — Sequifi/CaptiveIQ auto-push on deal milestones
@@ -273,36 +293,28 @@ Also: cancelled, lost
 
 ---
 
-## 9. Project Files That Need Updating
+## 9. Documentation Status
 
-These files in the codebase are behind what we've actually built/decided:
+All primary documentation is current as of Epic 9 completion:
 
-| File | Issue | What Needs to Change |
-|------|-------|---------------------|
-| `docs/PROJECT-KNOWLEDGE.md` | Says 47 tables, dated 2026-02-11 | Update to 48 tables (deal_adders from migration 013), note seed v4, note migration 014 drafted |
-| `docs/db-audit.md` | Missing migration 013-014 | Add deal_adders table, add migration 014 entry |
-| `CLAUDE.md` | Says "Epics 0-5 complete, Epic 6 next" | Should say Epics 0-7 complete, Epic 8 next |
-| `.cursor/rules/kinos.mdc` | Same stale epic status | Same update needed |
-| `docs/TRAYCER-EPICS.md` | Future epics list Aurora as "F1" | Aurora is done (Epic 6). Needs restructure. |
-| `docs/blueprint.md` | Says "Next.js 14" in header | Actually Next.js 16 |
+- `CLAUDE.md` — Epics 0-9 complete, Epic 10 next
+- `.cursor/rules/kinos.mdc` — Epics 0-9 complete, Epic 10 next
+- `docs/PROJECT-KNOWLEDGE.md` — 51 tables, 15 migrations, all API routes listed
+- `docs/schema-reference.md` — 51 tables, 952 columns
+- `docs/db-audit.md` — 51 tables + 2 views, verified 2026-02-12
 
-### Files that ARE current:
-- `docs/schema-reference.md` — updated to 48 tables, 912 columns
-- `docs/epic-7-plan-final.md` — accurate implementation plan
-- `docs/aurora-research-epic6-planning.md` — accurate research doc
-- `prod-seed-v4.sql` — ready to load
+### Files that may need attention:
+
+- `docs/blueprint.md` — Reference doc, may lag behind actual state
+- `docs/TRAYCER-EPICS.md` — Future epics list may be outdated
 
 ---
 
 ## 10. Immediate Action Items
 
-1. **Create Austin's auth user** in Supabase Dashboard (austin@kinhome.com)
-2. **Run prod-seed-v4.sql** in production Supabase SQL Editor
-3. **Verify seed** — count queries to confirm all data landed
-4. **Apply migration 014** — save file + run (deal_tags + communication_log → 50 tables)
-5. **Update stale project files** (see table above) — have Claude Code do this
-6. **Verify lender product rates** — seed has placeholder values
-7. **Start Epic 8** (Financing) or tackle admin pages
+1. **Verify lender product rates** — seed has placeholder values
+2. **Start Epic 10** (Submission & Gating Engine)
+3. **PandaDoc/SignNow integration** — wire real signing provider when ready (adapter pattern in place)
 
 ---
 
