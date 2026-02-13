@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { DealForUI } from "@/lib/deals-mappers";
 import type { DealDetail } from "@/lib/actions/deals";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   evaluateGates,
+  getGateStatus,
   completeGate,
   uncompleteGate,
   type GateWithStatus,
@@ -138,10 +139,7 @@ function GateItem({
   const renderControl = () => {
     if (isAuto) return null; // Auto gates are read-only
 
-    if (
-      gate.gate_type === "checkbox" ||
-      gate.gate_type === "external_status"
-    ) {
+    if (gate.gate_type === "checkbox" || gate.gate_type === "external_status") {
       return (
         <button
           type="button"
@@ -157,7 +155,10 @@ function GateItem({
           {saving ? (
             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
           ) : gate.isComplete ? (
-            <Check className="h-3 w-3 text-success-foreground" strokeWidth={3} />
+            <Check
+              className="h-3 w-3 text-success-foreground"
+              strokeWidth={3}
+            />
           ) : null}
         </button>
       );
@@ -293,12 +294,28 @@ export function PreIntakeStep({
 }) {
   const [gates, setGates] = useState<GateWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const autoAdvancedRef = useRef(false);
 
   const loadGates = useCallback(async () => {
-    const { data } = await evaluateGates(deal.id);
+    // Skip full evaluation for deals that already advanced past gates
+    const skipEval = [
+      "submission_ready",
+      "submitted",
+      "intake_approved",
+      "intake_rejected",
+    ].includes(deal.stage);
+
+    const { data, error } = skipEval
+      ? await getGateStatus(deal.id)
+      : await evaluateGates(deal.id);
+
+    if (error) {
+      setLoadError(error);
+    }
     setGates(data);
     setLoading(false);
-  }, [deal.id]);
+  }, [deal.id, deal.stage]);
 
   useEffect(() => {
     loadGates();
@@ -306,11 +323,12 @@ export function PreIntakeStep({
 
   // Auto-advance: when all required gates pass and deal is at contract_signed
   useEffect(() => {
-    if (loading || gates.length === 0) return;
+    if (loading || gates.length === 0 || autoAdvancedRef.current) return;
     const requiredGates = gates.filter((g) => g.is_required);
-    const allPassed = requiredGates.every((g) => g.isComplete);
+    const allRequiredPassed = requiredGates.every((g) => g.isComplete);
 
-    if (deal.stage === "contract_signed" && allPassed) {
+    if (deal.stage === "contract_signed" && allRequiredPassed) {
+      autoAdvancedRef.current = true;
       transitionDealStage(deal.id, "submission_ready").then(() => {
         onDealUpdated?.();
       });
@@ -327,6 +345,14 @@ export function PreIntakeStep({
         <span className="ml-2 text-sm text-muted-foreground">
           Loading gates...
         </span>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        Failed to load gates: {loadError}
       </div>
     );
   }

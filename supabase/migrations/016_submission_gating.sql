@@ -4,8 +4,20 @@
 -- Alter gate_completions: add value column for question/text answers
 -- Clean slate: delete old scaffolding gates, replace gate_type CHECK with 8 blueprint types
 
--- 1. Alter deal_snapshots: add submission_attempt column
+-- 1. Alter deal_snapshots: add submission_attempt column + expand snapshot_type CHECK
 ALTER TABLE deal_snapshots ADD COLUMN IF NOT EXISTS submission_attempt INTEGER NOT NULL DEFAULT 1;
+
+-- Expand snapshot_type CHECK to include 'submission' (original only allowed 5 types)
+ALTER TABLE deal_snapshots DROP CONSTRAINT IF EXISTS deal_snapshots_snapshot_type_check;
+ALTER TABLE deal_snapshots ADD CONSTRAINT deal_snapshots_snapshot_type_check
+  CHECK (snapshot_type IN (
+    'proposal_finalized',
+    'financing_submitted',
+    'contract_generated',
+    'submitted_to_quickbase',
+    'submission',
+    'manual'
+  ));
 
 -- 2. Alter deals table
 ALTER TABLE deals ADD COLUMN IF NOT EXISTS quickbase_record_id TEXT;

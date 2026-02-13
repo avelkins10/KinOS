@@ -359,10 +359,10 @@ export async function getSubmissionHistory(dealId: string): Promise<{
     const user = await getCurrentUser();
     if (!user?.companyId) return { data: [], error: "Unauthorized" };
 
-    // submission_attempt column added by migration 016; use raw select
+    // submission_attempt column added by migration 016; cast needed until types regenerated
     const { data, error } = await supabase
       .from("deal_snapshots")
-      .select("id, created_at, created_by")
+      .select("id, created_at, created_by, submission_attempt")
       .eq("deal_id", dealId)
       .eq("snapshot_type", "submission")
       .order("created_at", { ascending: false });
@@ -370,17 +370,16 @@ export async function getSubmissionHistory(dealId: string): Promise<{
     if (error) return { data: [], error: error.message };
 
     return {
-      data: (data ?? []).map(
-        (
-          s: {
-            id: string;
-            created_at: string | null;
-            created_by: string | null;
-          },
-          i: number,
-        ) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: ((data ?? []) as any[]).map(
+        (s: {
+          id: string;
+          created_at: string | null;
+          created_by: string | null;
+          submission_attempt: number;
+        }) => ({
           id: s.id,
-          submissionAttempt: (data?.length ?? 0) - i,
+          submissionAttempt: s.submission_attempt,
           createdAt: s.created_at ?? "",
           createdBy: s.created_by,
         }),

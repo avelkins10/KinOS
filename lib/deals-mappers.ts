@@ -51,6 +51,12 @@ export interface DealForUI {
   auroraSalesModeUrl?: string | null;
   rejectionReason?: string | null;
   designRequestNotes?: string | null;
+  /** Structured rejection reasons from intake review (JSONB, migration 016) */
+  rejectionReasons?: Array<{
+    code: string;
+    field?: string;
+    note?: string;
+  }> | null;
 }
 
 /** Design status values from Aurora workflow */
@@ -165,6 +171,13 @@ export function mapDealForUI(d: DealWithRelations): DealForUI {
     auroraSalesModeUrl: d.aurora_sales_mode_url ?? null,
     rejectionReason: d.rejection_reason ?? null,
     designRequestNotes: d.design_request_notes ?? null,
+    rejectionReasons:
+      ((d as unknown as { rejection_reasons?: unknown })
+        .rejection_reasons as Array<{
+        code: string;
+        field?: string;
+        note?: string;
+      }> | null) ?? null,
   };
 }
 

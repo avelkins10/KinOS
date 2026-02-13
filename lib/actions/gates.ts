@@ -87,7 +87,7 @@ export async function getGateStatus(
 
 /**
  * Auto-evaluate gates based on deal state.
- * Batched: 4 parallel queries up front, then evaluate each gate in-memory.
+ * Single client/user, batched queries, in-memory evaluation.
  * Only evaluates auto types: document_signed, file_uploaded, financing_status.
  */
 export async function evaluateGates(
@@ -99,23 +99,22 @@ export async function evaluateGates(
     if (!user?.companyId || !user?.userId)
       return { data: [], error: "Unauthorized" };
 
-    // Get all gates first
-    const { data: allGates, error: gatesError } = await getGateStatus(dealId);
-    if (gatesError) return { data: [], error: gatesError };
-
-    // Filter to auto-evaluable types
-    const autoTypes = ["document_signed", "file_uploaded", "financing_status"];
-    const autoGates = allGates.filter((g) => autoTypes.includes(g.gate_type));
-
-    if (autoGates.length === 0) return { data: allGates, error: null };
-
-    // Batch: 4 parallel queries (one per table needed for auto-evaluation)
+    // 1. Fetch gates + completions + auto-eval data in one batch (6 parallel queries)
     const [
+      { data: gates, error: gatesError },
+      { data: completions, error: compError },
       { data: templates },
       { data: envelopes },
       { data: attachments },
       { data: financingApps },
     ] = await Promise.all([
+      supabase
+        .from("gate_definitions")
+        .select("*")
+        .eq("company_id", user.companyId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true }),
+      supabase.from("gate_completions").select("*").eq("deal_id", dealId),
       supabase.from("document_templates").select("id, document_type"),
       supabase
         .from("document_envelopes")
@@ -135,8 +134,15 @@ export async function evaluateGates(
         .limit(1),
     ]);
 
-    // Evaluate each auto gate against in-memory data
-    for (const gate of autoGates) {
+    if (gatesError) return { data: [], error: gatesError.message };
+    if (compError) return { data: [], error: compError.message };
+
+    // 2. Auto-evaluate and upsert completions for auto gates
+    const autoTypes = ["document_signed", "file_uploaded", "financing_status"];
+
+    for (const gate of (gates ?? []) as GateDefinitionRow[]) {
+      if (!autoTypes.includes(gate.gate_type)) continue;
+
       const conditions = (gate.conditions ?? {}) as Record<string, unknown>;
       let passed = false;
 
@@ -188,8 +194,37 @@ export async function evaluateGates(
       );
     }
 
-    // Re-fetch merged status after updates
-    return getGateStatus(dealId);
+    // 3. Re-fetch completions after upserts (single query, reuse same client)
+    const { data: updatedCompletions } = await supabase
+      .from("gate_completions")
+      .select("*")
+      .eq("deal_id", dealId);
+
+    // 4. Merge into GateWithStatus
+    const result: GateWithStatus[] = ((gates ?? []) as GateDefinitionRow[]).map(
+      (gate) => {
+        const completion =
+          (updatedCompletions ?? []).find(
+            (c: GateCompletionRow) => c.gate_definition_id === gate.id,
+          ) ?? null;
+        return {
+          id: gate.id,
+          name: gate.name,
+          description: gate.description,
+          gate_type: gate.gate_type,
+          conditions: gate.conditions as Record<string, unknown> | null,
+          display_order: gate.display_order,
+          is_required: gate.is_required,
+          completion,
+          isComplete: completion?.is_complete ?? false,
+          value:
+            (completion as GateCompletionRow & { value?: string | null })
+              ?.value ?? null,
+        };
+      },
+    );
+
+    return { data: result, error: null };
   } catch (e) {
     return {
       data: [],

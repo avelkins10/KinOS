@@ -2,7 +2,7 @@
 
 > Last audited: 2026-02-12 (pulled from live Supabase)
 > 51 tables + 2 views = 53 objects in public schema
-> Migrations 001-015 applied (latest: 014 adder_scope_rules RLS, 015 document_templates constraints)
+> Migrations 001-016 applied (latest: 016 submission & gating engine — deal_snapshots.submission_attempt, deals.quickbase_record_id/rejection_reasons, gate_completions.value, gate_type CHECK expanded)
 > Full column-level detail: `docs/schema-reference.md`
 
 ---
@@ -25,7 +25,7 @@
 ### CRM Core (8 tables)
 
 - **contacts** (44 cols): id, company_id, names, email, phone, address fields, contact_type, contact_source, repcard_customer_id, repcard_status, repcard_status_id, utility fields (company, account_number, rate_kwh, tariff_code, tariff_name), consumption fields (annual_usage_kwh, monthly_electric_bill, monthly_usage_kwh JSONB, building_sqft), genability IDs, HOA fields, roof fields, latitude, longitude, soft delete
-- **deals** (93 cols): id, company_id, contact_id, deal_number, stage, closer_id, setter_id, office_id, team_id, appointment fields (7), aurora fields (project_id, design_id, design_request_id, proposal_id, sales_mode_url), design_status (see below), consumption (monthly_kwh JSONB, annual_kwh, utility_company, utility_tariff, monthly_bill), design request metadata (design_request_type, design_requested_at, design_completed_at, design_request_notes, target_offset, roof_material), system fields (size_kw, panel_count/model, inverter_model, battery), pricing fields (gross/net price/ppw, dealer_fee, commission_base), financing fields, submission fields, active_appointment_id, active_proposal_id, install address fields, soft delete
+- **deals** (95 cols): id, company_id, contact_id, deal_number, stage, closer_id, setter_id, office_id, team_id, appointment fields (7), aurora fields (project_id, design_id, design_request_id, proposal_id, sales_mode_url), design_status (see below), consumption (monthly_kwh JSONB, annual_kwh, utility_company, utility_tariff, monthly_bill), design request metadata (design_request_type, design_requested_at, design_completed_at, design_request_notes, target_offset, roof_material), system fields (size_kw, panel_count/model, inverter_model, battery), pricing fields (gross/net price/ppw, dealer_fee, commission_base), financing fields, submission fields (quickbase_record_id, rejection_reasons JSONB), active_appointment_id, active_proposal_id, install address fields, soft delete
 - **proposals** (72 cols): full pricing waterfall, design snapshot, financing terms
 - **proposal_arrays** (20 cols): per-array design data (modules, pitch, azimuth, TSRF, solar access)
 - **proposal_adders** (17 cols): line-item adders with dynamic inputs, tier_selection, custom_amount
@@ -71,7 +71,7 @@
 ### Gates (2 tables)
 
 - **gate_definitions** (13 cols): configurable submission gates per stage
-- **gate_completions** (11 cols): per-deal gate status
+- **gate_completions** (12 cols): per-deal gate status, value (text answers for question gates)
 
 ### Workflow (2 tables — added by Cursor)
 
@@ -96,7 +96,7 @@
 - **deal_stage_history** (8 cols): from/to stage with metadata
 - **deal_assignment_history** (10 cols): closer/setter/office reassignments
 - **contact_change_history** (8 cols): field-level changes with source
-- **deal_snapshots** (7 cols): point-in-time deal state (JSONB)
+- **deal_snapshots** (8 cols): point-in-time deal state (JSONB), submission_attempt for submission snapshots
 - **audit_log** (9 cols): generic change log with IP/user-agent
 
 ### Integrations (4 tables)

@@ -33,7 +33,8 @@ function getReviewItems(
   dealDetail?: DealDetail | null,
 ): ReviewItem[] {
   const hasDesign = !!deal.systemSize;
-  const hasLender = !!deal.lender || (dealDetail?.financingApplications?.length ?? 0) > 0;
+  const hasLender =
+    !!deal.lender || (dealDetail?.financingApplications?.length ?? 0) > 0;
 
   const financingApp = dealDetail?.financingApplications?.[0];
   const financingLabel = financingApp?.lender?.name
@@ -156,8 +157,8 @@ function SubmittedView({
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <Clock className="h-4 w-4" />
-            {showHistory ? "Hide" : "Show"} submission history (
-            {history.length} attempts)
+            {showHistory ? "Hide" : "Show"} submission history ({history.length}{" "}
+            attempts)
           </button>
           {showHistory && (
             <div className="mt-3 space-y-2">
@@ -196,12 +197,7 @@ function RejectedView({
   const router = useRouter();
   const [resubmitting, setResubmitting] = useState(false);
 
-  const rejectionReasons = (
-    (deal as unknown as { rejection_reasons?: unknown }).rejection_reasons ??
-    (dealDetail as unknown as { rejection_reasons?: unknown })
-      ?.rejection_reasons ??
-    []
-  ) as Array<{ code: string; field?: string; note?: string }>;
+  const rejectionReasons = deal.rejectionReasons ?? [];
 
   const handleResubmit = async () => {
     setResubmitting(true);
