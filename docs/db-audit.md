@@ -2,7 +2,7 @@
 
 > Last audited: 2026-02-12 (pulled from live Supabase)
 > 51 tables + 2 views = 53 objects in public schema
-> Migrations 001-016 applied (latest: 016 submission & gating engine — deal_snapshots.submission_attempt, deals.quickbase_record_id/rejection_reasons, gate_completions.value, gate_type CHECK expanded)
+> Migrations 001-017 applied (latest: 017 RLS policies for financing_status_history, contact_change_history, note_edits, equipment_market_availability, aurora_pricing_syncs)
 > Full column-level detail: `docs/schema-reference.md`
 
 ---

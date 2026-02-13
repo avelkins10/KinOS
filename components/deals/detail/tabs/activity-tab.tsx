@@ -3,8 +3,7 @@
 import { useState } from "react";
 import type { DealForUI } from "@/lib/deals-mappers";
 import type { DealDetail } from "@/lib/actions/deals";
-// TODO: Replace mock data with real Supabase query
-import { RECENT_ACTIVITY } from "@/lib/mock-data";
+import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils";
 import {
   ArrowRightLeft,
@@ -14,6 +13,7 @@ import {
   Landmark,
   Cpu,
   Send,
+  Loader2,
 } from "lucide-react";
 
 const typeIcons: Record<string, typeof ArrowRightLeft> = {
@@ -47,14 +47,42 @@ const typeColors: Record<string, string> = {
 export function ActivityTab({
   deal,
   dealDetail,
+  onDealUpdated,
 }: {
   deal: DealForUI;
   dealDetail?: DealDetail | null;
+  onDealUpdated?: () => void;
 }) {
   const [note, setNote] = useState("");
-  const hasRealData =
-    (dealDetail?.stageHistory?.length ?? 0) > 0 ||
-    (dealDetail?.notes?.length ?? 0) > 0;
+  const [submitting, setSubmitting] = useState(false);
+  const { firstName, lastName } = useAuth();
+  const userInitials =
+    `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
+
+  const handleSubmitNote = async () => {
+    const trimmed = note.trim();
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entityType: "deal",
+          entityId: deal.id,
+          content: trimmed,
+        }),
+      });
+      const result = await res.json();
+      if (!result.error) {
+        setNote("");
+        onDealUpdated?.();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const stageItems =
     (dealDetail?.stageHistory ?? []).map((h) => ({
       id: h.id,
@@ -87,45 +115,47 @@ export function ActivityTab({
         : "",
       user: "User",
     })) ?? [];
-  const realItems = [...stageItems, ...noteItems].sort(
+  const allItems = [...stageItems, ...noteItems].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
-  const mockItems = RECENT_ACTIVITY.filter((a) => a.dealId === deal.id);
-  const allItems = hasRealData
-    ? realItems
-    : mockItems.length < 3
-      ? [
-          ...mockItems,
-          ...RECENT_ACTIVITY.filter((a) => a.dealId !== deal.id).slice(0, 5),
-        ]
-      : mockItems;
 
   return (
     <div>
       {/* Add Note */}
       <div className="mb-6 flex gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-          AE
+          {userInitials}
         </div>
         <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmitNote();
+              }
+            }}
             placeholder="Add a note..."
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
           />
           <button
             type="button"
-            disabled={!note.trim()}
+            disabled={!note.trim() || submitting}
+            onClick={handleSubmitNote}
             className={cn(
               "rounded-md p-1.5 transition-colors",
-              note.trim()
+              note.trim() && !submitting
                 ? "text-primary hover:bg-primary/10"
                 : "text-muted-foreground/30",
             )}
           >
-            <Send className="h-4 w-4" />
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>

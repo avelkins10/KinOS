@@ -28,9 +28,11 @@ type TabId = (typeof tabs)[number]["id"];
 export function DealTabs({
   deal,
   dealDetail,
+  onDealUpdated,
 }: {
   deal: DealForUI;
   dealDetail?: DealDetail | null;
+  onDealUpdated?: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
@@ -72,7 +74,13 @@ export function DealTabs({
         )}
         {activeTab === "documents" && <DocumentsTab deal={deal} />}
         {activeTab === "submission" && <SubmissionTab deal={deal} />}
-        {activeTab === "activity" && <ActivityTab deal={deal} />}
+        {activeTab === "activity" && (
+          <ActivityTab
+            deal={deal}
+            dealDetail={dealDetail}
+            onDealUpdated={onDealUpdated}
+          />
+        )}
         {activeTab === "files" && <FilesTab deal={deal} />}
       </div>
     </div>
