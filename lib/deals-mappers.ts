@@ -172,8 +172,7 @@ export function mapDealForUI(d: DealWithRelations): DealForUI {
     rejectionReason: d.rejection_reason ?? null,
     designRequestNotes: d.design_request_notes ?? null,
     rejectionReasons:
-      ((d as unknown as { rejection_reasons?: unknown })
-        .rejection_reasons as Array<{
+      (d.rejection_reasons as Array<{
         code: string;
         field?: string;
         note?: string;

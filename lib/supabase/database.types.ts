@@ -607,6 +607,115 @@ export type Database = {
           },
         ]
       }
+      communication_log: {
+        Row: {
+          body: string | null
+          channel: string
+          company_id: string
+          contact_id: string | null
+          created_at: string | null
+          deal_id: string | null
+          delivered_at: string | null
+          direction: string
+          error_message: string | null
+          external_id: string | null
+          from_user_id: string | null
+          id: string
+          opened_at: string | null
+          provider: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string | null
+          to_email: string | null
+          to_phone: string | null
+        }
+        Insert: {
+          body?: string | null
+          channel: string
+          company_id: string
+          contact_id?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          delivered_at?: string | null
+          direction?: string
+          error_message?: string | null
+          external_id?: string | null
+          from_user_id?: string | null
+          id?: string
+          opened_at?: string | null
+          provider?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          to_email?: string | null
+          to_phone?: string | null
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          company_id?: string
+          contact_id?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          delivered_at?: string | null
+          direction?: string
+          error_message?: string | null
+          external_id?: string | null
+          from_user_id?: string | null
+          id?: string
+          opened_at?: string | null
+          provider?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          to_email?: string | null
+          to_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_log_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_log_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deal_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_log_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deal_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_log_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string | null
@@ -851,6 +960,84 @@ export type Database = {
           },
         ]
       }
+      deal_adders: {
+        Row: {
+          added_by: string | null
+          adder_template_id: string | null
+          amount: number
+          created_at: string | null
+          deal_id: string
+          id: string
+          name: string
+          notes: string | null
+          pricing_type: string
+          quantity: number | null
+          total: number
+        }
+        Insert: {
+          added_by?: string | null
+          adder_template_id?: string | null
+          amount: number
+          created_at?: string | null
+          deal_id: string
+          id?: string
+          name: string
+          notes?: string | null
+          pricing_type?: string
+          quantity?: number | null
+          total: number
+        }
+        Update: {
+          added_by?: string | null
+          adder_template_id?: string | null
+          amount?: number
+          created_at?: string | null
+          deal_id?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          pricing_type?: string
+          quantity?: number | null
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_adders_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_adders_adder_template_id_fkey"
+            columns: ["adder_template_id"]
+            isOneToOne: false
+            referencedRelation: "adder_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_adders_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_adders_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deal_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_adders_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deal_pipeline"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_assignment_history: {
         Row: {
           assignment_type: string
@@ -1042,6 +1229,7 @@ export type Database = {
           proposal_id: string | null
           snapshot_data: Json
           snapshot_type: string
+          submission_attempt: number
         }
         Insert: {
           created_at?: string | null
@@ -1051,6 +1239,7 @@ export type Database = {
           proposal_id?: string | null
           snapshot_data: Json
           snapshot_type: string
+          submission_attempt?: number
         }
         Update: {
           created_at?: string | null
@@ -1060,6 +1249,7 @@ export type Database = {
           proposal_id?: string | null
           snapshot_data?: Json
           snapshot_type?: string
+          submission_attempt?: number
         }
         Relationships: [
           {
@@ -1161,6 +1351,63 @@ export type Database = {
           },
         ]
       }
+      deal_tags: {
+        Row: {
+          added_by: string | null
+          created_at: string | null
+          deal_id: string
+          tag_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string | null
+          deal_id: string
+          tag_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string | null
+          deal_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_tags_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_tags_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_tags_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deal_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_tags_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deal_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_workflow_progress: {
         Row: {
           completed_at: string | null
@@ -1251,6 +1498,7 @@ export type Database = {
           aurora_design_id: string | null
           aurora_design_request_id: string | null
           aurora_project_id: string | null
+          aurora_proposal_id: string | null
           aurora_sales_mode_url: string | null
           battery_count: number | null
           battery_model: string | null
@@ -1310,7 +1558,9 @@ export type Database = {
           panel_count: number | null
           panel_model: string | null
           quickbase_deal_id: string | null
+          quickbase_record_id: string | null
           rejection_reason: string | null
+          rejection_reasons: Json | null
           repcard_appointment_id: number | null
           roof_material: string | null
           setter_id: string | null
@@ -1345,6 +1595,7 @@ export type Database = {
           aurora_design_id?: string | null
           aurora_design_request_id?: string | null
           aurora_project_id?: string | null
+          aurora_proposal_id?: string | null
           aurora_sales_mode_url?: string | null
           battery_count?: number | null
           battery_model?: string | null
@@ -1404,7 +1655,9 @@ export type Database = {
           panel_count?: number | null
           panel_model?: string | null
           quickbase_deal_id?: string | null
+          quickbase_record_id?: string | null
           rejection_reason?: string | null
+          rejection_reasons?: Json | null
           repcard_appointment_id?: number | null
           roof_material?: string | null
           setter_id?: string | null
@@ -1439,6 +1692,7 @@ export type Database = {
           aurora_design_id?: string | null
           aurora_design_request_id?: string | null
           aurora_project_id?: string | null
+          aurora_proposal_id?: string | null
           aurora_sales_mode_url?: string | null
           battery_count?: number | null
           battery_model?: string | null
@@ -1498,7 +1752,9 @@ export type Database = {
           panel_count?: number | null
           panel_model?: string | null
           quickbase_deal_id?: string | null
+          quickbase_record_id?: string | null
           rejection_reason?: string | null
+          rejection_reasons?: Json | null
           repcard_appointment_id?: number | null
           roof_material?: string | null
           setter_id?: string | null
@@ -2118,6 +2374,7 @@ export type Database = {
           metadata: Json | null
           notes: string | null
           updated_at: string | null
+          value: string | null
         }
         Insert: {
           approved_by?: string | null
@@ -2131,6 +2388,7 @@ export type Database = {
           metadata?: Json | null
           notes?: string | null
           updated_at?: string | null
+          value?: string | null
         }
         Update: {
           approved_by?: string | null
@@ -2144,6 +2402,7 @@ export type Database = {
           metadata?: Json | null
           notes?: string | null
           updated_at?: string | null
+          value?: string | null
         }
         Relationships: [
           {
@@ -3403,6 +3662,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tags: {
+        Row: {
+          color: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tags_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"

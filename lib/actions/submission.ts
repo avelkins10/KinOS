@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/notifications";
 import { submissionProvider } from "@/lib/integrations/submission/manual-provider";
 import type { SubmissionPayload } from "@/lib/integrations/submission/types";
+import type { Json } from "@/lib/supabase/database.types";
 
 /**
  * Assemble the full submission payload from a deal's current state.
@@ -205,17 +206,15 @@ export async function submitDeal(dealId: string): Promise<{
     payload.submissionAttempt = submissionAttempt;
 
     // 3. Insert deal_snapshots row (frozen JSONB payload)
-    // submission_attempt added by migration 016
     const { data: snapshot, error: snapError } = await supabase
       .from("deal_snapshots")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .insert({
         deal_id: dealId,
-        snapshot_type: "submission",
+        snapshot_type: "submission" as const,
         snapshot_data: JSON.parse(JSON.stringify(payload)),
         submission_attempt: submissionAttempt,
         created_by: user.userId,
-      } as any)
+      })
       .select("id")
       .single();
 
@@ -233,12 +232,11 @@ export async function submitDeal(dealId: string): Promise<{
       return { data: null, error: submitError };
     }
 
-    // 5. Update deal: quickbase_record_id if returned (column added by migration 016)
+    // 5. Update deal: quickbase_record_id if returned
     if (externalId) {
       await supabase
         .from("deals")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ quickbase_record_id: externalId } as any)
+        .update({ quickbase_record_id: externalId })
         .eq("id", dealId);
     }
 
@@ -305,11 +303,10 @@ export async function rejectDeal(
       return { error: "Unauthorized" };
     }
 
-    // 1. Update deal: rejection_reasons (JSONB, column added by migration 016)
+    // 1. Update deal: rejection_reasons (JSONB)
     const { error: updateError } = await supabase
       .from("deals")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .update({ rejection_reasons: reasons } as any)
+      .update({ rejection_reasons: reasons as unknown as Json })
       .eq("id", dealId);
 
     if (updateError) return { error: updateError.message };
@@ -370,20 +367,12 @@ export async function getSubmissionHistory(dealId: string): Promise<{
     if (error) return { data: [], error: error.message };
 
     return {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: ((data ?? []) as any[]).map(
-        (s: {
-          id: string;
-          created_at: string | null;
-          created_by: string | null;
-          submission_attempt: number;
-        }) => ({
-          id: s.id,
-          submissionAttempt: s.submission_attempt,
-          createdAt: s.created_at ?? "",
-          createdBy: s.created_by,
-        }),
-      ),
+      data: (data ?? []).map((s) => ({
+        id: s.id,
+        submissionAttempt: s.submission_attempt,
+        createdAt: s.created_at ?? "",
+        createdBy: s.created_by,
+      })),
       error: null,
     };
   } catch (e) {

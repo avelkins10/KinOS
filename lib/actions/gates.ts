@@ -69,9 +69,7 @@ export async function getGateStatus(
           is_required: gate.is_required,
           completion,
           isComplete: completion?.is_complete ?? false,
-          value:
-            (completion as GateCompletionRow & { value?: string | null })
-              ?.value ?? null,
+          value: completion?.value ?? null,
         };
       },
     );
@@ -217,9 +215,7 @@ export async function evaluateGates(
           is_required: gate.is_required,
           completion,
           isComplete: completion?.is_complete ?? false,
-          value:
-            (completion as GateCompletionRow & { value?: string | null })
-              ?.value ?? null,
+          value: completion?.value ?? null,
         };
       },
     );
@@ -255,32 +251,25 @@ export async function completeGate(
       .maybeSingle();
 
     if (existing) {
-      // value column added by migration 016
-      const updateData: Record<string, unknown> = {
-        is_complete: true,
-        completed_at: new Date().toISOString(),
-        completed_by: user.userId,
-      };
-      if (value !== undefined) updateData.value = value;
       const { error } = await supabase
         .from("gate_completions")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update(updateData as any)
+        .update({
+          is_complete: true,
+          completed_at: new Date().toISOString(),
+          completed_by: user.userId,
+          ...(value !== undefined ? { value } : {}),
+        })
         .eq("id", existing.id);
       if (error) return { error: error.message };
     } else {
-      const insertData: Record<string, unknown> = {
+      const { error } = await supabase.from("gate_completions").insert({
         deal_id: dealId,
         gate_definition_id: gateId,
         is_complete: true,
         completed_at: new Date().toISOString(),
         completed_by: user.userId,
-      };
-      if (value !== undefined) insertData.value = value;
-      const { error } = await supabase
-        .from("gate_completions")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .insert(insertData as any);
+        ...(value !== undefined ? { value } : {}),
+      });
       if (error) return { error: error.message };
     }
 
@@ -312,16 +301,14 @@ export async function uncompleteGate(
       .maybeSingle();
 
     if (existing) {
-      // value column added by migration 016
       const { error } = await supabase
         .from("gate_completions")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .update({
           is_complete: false,
           completed_at: null,
           completed_by: null,
           value: null,
-        } as any)
+        })
         .eq("id", existing.id);
       if (error) return { error: error.message };
     }
