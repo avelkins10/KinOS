@@ -90,7 +90,7 @@ All gates: `required_for_stage = submission_ready`, `is_required = true`, `is_ac
 ### Rejection & Resubmission
 
 - `intake_rejected` set manually for now (QB webhook handler is future)
-- UI shows rejection reasons from `deals.rejection_reasons` (text array)
+- UI shows rejection reasons from `deals.rejection_reasons` (JSONB — structured: reason code, field reference, timestamp)
 - Deal transitions backward: `intake_rejected` → `submission_ready`
 - Closer fixes issues, gates re-evaluate, new snapshot created on resubmit
 - `deal_snapshots.submission_attempt` increments (1, 2, 3...)
@@ -211,8 +211,8 @@ CREATE INDEX idx_deal_snapshots_deal ON deal_snapshots(deal_id);
 
 ```sql
 ALTER TABLE deals ADD COLUMN IF NOT EXISTS quickbase_record_id TEXT;
-ALTER TABLE deals ADD COLUMN IF NOT EXISTS submission_payload JSONB;
-ALTER TABLE deals ADD COLUMN IF NOT EXISTS rejection_reasons TEXT[];
+ALTER TABLE deals ADD COLUMN IF NOT EXISTS rejection_reasons JSONB;
+-- No submission_payload column — deal_snapshots.snapshot_data is the single source of truth
 ```
 
 ### Alter `gate_completions` table

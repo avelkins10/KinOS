@@ -12,6 +12,8 @@ export type NotificationType =
   | "stip_requested"
   | "deal_stage_change"
   | "deal_assigned"
+  | "deal_submitted"
+  | "deal_rejected"
   | "system";
 
 export type NotificationChannel = "in_app" | "email" | "sms";
